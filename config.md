@@ -32,15 +32,12 @@ Configuration for the graphical interface and monitor management.
 | `window.info_color` | `[255, 255, 255, 255]` | RGBA color for the main On-Screen Display (OSD). |
 | `window.light_average` | `{ "1": 150, ... }` | Monthly average Lux mapping for adaptive brightness. |
 
-### 🔌 Hardware & Input (`pir`, `fan`, `remote`)
+### 🔌 Hardware & Input (`pir`, `remote`)
 Configuration for Raspberry Pi GPIOs and external input devices.
 
 | Key | Value | Description |
 | :--- | :--- | :--- |
 | `pir.enabled` | `false` | Enables/disables the PIR motion sensor logic. |
-| `fan.enabled` | `false` | Enables active fan cooling based on temperature. |
-| `fan.pin` | `14` | The GPIO pin number the fan is connected to. |
-| `fan.trigger` | `50` | CPU Temperature (°C) threshold to turn the fan ON. |
 | `bluedot.enabled` | `false` | Enables support for the BlueDot Bluetooth remote app. |
 | `boxput.enabled` | `true` | Enables support for HID remotes (like BoxPut). |
 | `boxput.wait_time` | `0.1` | The polling interval for remote button presses. |
@@ -55,4 +52,4 @@ Configuration for Raspberry Pi GPIOs and external input devices.
 ---
 
 ### Note:
-Since you are using `Config.AUTO_SET = True`, any time you call `Config.get('key', default)` and the key is missing, the application will **automatically add** that key with the default value to your `config.json` upon exit. This makes it very easy to generate a "master" config file simply by running the app once.
+By means of `Config.AUTO_SET = True`, any time the code call `Config.get('key', default)` and the key is missing, the application will **automatically add** that key with the default value to the `config.json` upon exit. This makes it very easy to generate a "master" config file simply by running the app once.

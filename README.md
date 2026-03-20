@@ -1,78 +1,68 @@
-# SPYCCY
 
-Just another ZX Spectrum emulator completely written in Python.
+**Digital Frame (DF)**
 
-## Features
+An advanced, modular digital photo frame system developed in Python using **pyray** (Raylib). This project is designed to run seamlessly on both **Windows** and **Raspberry Pi**, offering fluid rendering of images, videos, and 3D models with deep hardware integration for home automation.
 
-* Emulates the ZXSpectrum 48K and 128K machines
-* Handles all Z80 instructions, documented and undocumented
-* Beeper and AY-8910 chip audio
-* Loads SZX, Z80 and SNA snapshots
-* Save Z80 snapshots
-* Loads TAP tape files and partially TZX tape files
-* Save TAP tape images
-* Run BASIC programs edited from spyccy editor (manages zmakebas syntax) 
-* TR-DOS rom extension
-* Read and write Floppy TRD and SCL format
-* Original and Standard keyboard
-* Joystick (Sinclair, Kempston, Programmable, Cursor, Fuller)
-* Currah µSource rom extension
-* Sinclair Zx2 interface cartridge
-* Platforms: Linux and Windows
+## **🚀 Key Features**
 
-## Requirements
+* **Multi-format Support:** Native rendering of images (JPG, PNG, GIF), videos (MP4, AVI) via OpenCV, and 3D models (GLB, OBJ).  
+* **Intelligent Path Handling:** Automatic normalization of "Linux-style" paths even when running on Windows environments.  
+* **Live Folder Monitoring:** Real-time library updates using watchdog. Perfect for syncing files via **SFTP** or network shares without restarting.  
+* **Hardware Integration:**  
+  * **PIR Sensor:** Automatic screen power management (HDMI CEC/DPMS) based on human presence.  
+  * **Active Cooling:** Fan controller logic based on real-time CPU temperature.  
+  * **Adaptive Brightness:** Automatic monitor adjustment (via DDC/CI on Windows/Linux) based on ambient light or seasonal lux averages.  
+* **Remote Control Support:** Dynamic key mapping for external HID devices like the BoxPut Remote or BlueDot.  
+* **Visual Enhancements:** Real-time histogram calculation and smart "matte" background coloring for a curated aesthetic.
 
-All the code is written in Python. Optional c libraries are included to boost screen and AY-8910 handling. 
+## **📂 Project Structure**
 
-required libraries:
+| File | Description |
+| :---- | :---- |
+| df.py | Core engine and main application loop. |
+| config.py | Centralized JSON configuration manager. |
+| dfitems.py | Media indexing and scanning logic. |
+| devices.py | Interface for PIR sensors, fans, and remote inputs. |
+| dfimage.py / dfvideo.py | Dedicated rendering modules for photos and video streams. |
+| display.py / ddcutil.py | Utilities for monitor power and brightness control. |
+| metrics.py | System resource monitoring (CPU, RAM, Temp). |
 
-* tkinter   ("pip install tk" or "apt-get install python3-tk")
-* pygame    ("pip install pygame" or "apt-get install python3-pygame")
-* numpy     ("pip install numpy")
-* pillow    ("pip install pilllow" or "apt-get install python3-pil python3-pil.imagetk")
-* cffi      [optional to boost screen rendering] ("pip install cffi" or "apt-get install python3-cffi")
-* zxbasic   [optional to generate assembler code from basic sources] ("pip install zxbasic")
+## **🛠️ Requirements**
 
-## Run
+### **Software**
 
-1. Clone the repository to your local machine:
+* Python 3.9+  
+* Dependencies: raylib, opencv-python, numpy, exifread, psutil, watchdog.
 
-   ```bash
-   git clone https://github.com/johndeckardsoftware/spyccy.git
-   ```
+### **Hardware (Optional)**
 
-2. Navigate to the project directory:
+* **Raspberry Pi:** For GPIO-based features (PIR).  
+* **DDC/CI Compatible Monitor:** Required for the auto-brightness features.
 
-   ```bash
-   cd spyccy
-   ```
+## **🔧 Installation & Setup**
 
-3. Run the application:
+1. **Clone the repository:**  
+   Bash  
+   git clone https://github.com/johndeckardsoftware/digitalframe.git  
+   cd digitalframe
 
-   ```bash
-   python spyccy
-   ```
+2. **Install Python dependencies:**  
+   Bash  
+   pip install \-r requirements.txt
 
-## Contributions
+3. **First Run:**  
+   On the initial launch, if config.json is missing, the program will prompt you to enter the path for your media folder.
 
-These days, releasing open source code tends to come with an unspoken social contract, so I'd like to set some expectations...
+## **⚙️ SFTP Workflow (Windows)**
 
-This is a personal project, created for my own enjoyment, and my act of publishing the code does not come with any commitment to provide technical support or assistance. I'm always happy to hear of other people getting similar enjoyment from hacking on the code, and pull requests are welcome, but I can't promise to review them or shepherd them into an "official" release on any sort of timescale. 
+To remotely upload images to your Windows-based frame:
 
+1. Enable **OpenSSH Server** via Windows Optional Features.  
+2. Start the sshd service in services.msc.  
+3. Connect using any SFTP client (like FileZilla or WinSCP).  
+4. The FolderWatch module will detect new files and add them to the slideshow instantly, provided they exceed the minimum valid file size.
 
-## License
+## **📝 License**
 
-_SPYCCY_ is open source software. The source code is distributed under the terms of [GNU General Public License (GPLv3)](https://www.gnu.org/licenses/gpl-3.0.html).
-
-
-## Acknowledgements
-
-This software is inspired, or derive code from the following open source projects:
-
-* fuse emulator (http://fuse-emulator.sourceforge.net/)
-* EightyOne Sinclair Emulator (https://sourceforge.net/projects/eightyone-sinclair-emulator/)
-* SoftSpectrum48 (https://softspectrum48.weebly.com/)
-* PyZXSpectrum (https://github.com/folkertvanheusden/PyZXSpectrum)
-* tzxtools - a collection for processing tzx files (https://github.com/shred/tzxtools)
-* Russell Marks zmakebas.c (https://github.com/z00m128/zmakebas)
-* Alexander Sashnov (https://github.com/asashnov/libayemu)
+This project is licensed under the MIT License. See the LICENSE file for details.  
+---
