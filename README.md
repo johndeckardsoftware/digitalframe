@@ -1,19 +1,20 @@
 
 **Digital Frame (DF)**
 
-An advanced, modular digital photo frame system developed in Python using **pyray** (Raylib). This project is designed to run seamlessly on both **Windows** and **Raspberry Pi**, offering fluid rendering of images, videos, and 3D models with deep hardware integration for home automation.
+An advanced, modular digital photo frame system developed in Python using **pyray** (Raylib). This project is designed to run seamlessly on both **Windows**, **Linux** and **Raspberry Pi4**, offering fluid rendering of images, videos, and 3D models with deep hardware integration for home automation.
 
 ## **🚀 Key Features**
 
 * **Multi-format Support:** Native rendering of images (JPG, PNG, GIF), videos (MP4, AVI) via OpenCV, and 3D models (GLB, OBJ).  
-* **Intelligent Path Handling:** Automatic normalization of "Linux-style" paths even when running on Windows environments.  
 * **Live Folder Monitoring:** Real-time library updates using watchdog. Perfect for syncing files via **SFTP** or network shares without restarting.  
-* **Hardware Integration:**  
-  * **PIR Sensor:** Automatic screen power management (HDMI CEC/DPMS) based on human presence.  
-  * **Active Cooling:** Fan controller logic based on real-time CPU temperature.  
-  * **Adaptive Brightness:** Automatic monitor adjustment (via DDC/CI on Windows/Linux) based on ambient light or seasonal lux averages.  
+* **Adaptive Brightness:** Automatic monitor brightness adjustment based on ambient light.  
+* **Direct hardware integration (Raspberry):**  
+  * **PIR Sensor:** Automatic screen power management based on human presence.  
+* **Software Integration:**  
+  * **HomeAssistant**
+	* **Light as Motion sensor** thru MQTT for Automatic screen power management based on human presence and ambient light photo blend 
 * **Remote Control Support:** Dynamic key mapping for external HID devices like the BoxPut Remote or BlueDot.  
-* **Visual Enhancements:** Real-time histogram calculation and smart "matte" background coloring for a curated aesthetic.
+* **Visual Enhancements:** Automatic "matte" background and borders coloring for a curated aesthetic.
 
 ## **📂 Project Structure**
 
@@ -34,11 +35,6 @@ An advanced, modular digital photo frame system developed in Python using **pyra
 * Python 3.9+  
 * Dependencies: raylib, opencv-python, numpy, exifread, psutil, watchdog.
 
-### **Hardware (Optional)**
-
-* **Raspberry Pi:** For GPIO-based features (PIR).  
-* **DDC/CI Compatible Monitor:** Required for the auto-brightness features.
-
 ## **🔧 Installation & Setup**
 
 1. **Clone the repository:**  
@@ -53,14 +49,9 @@ An advanced, modular digital photo frame system developed in Python using **pyra
 3. **First Run:**  
    On the initial launch, if config.json is missing, the program will prompt you to enter the path for your media folder.
 
-## **⚙️ SFTP Workflow (Windows)**
+## **⚙️ Media file updates**
 
-To remotely upload images to your Windows-based frame:
-
-1. Enable **OpenSSH Server** via Windows Optional Features.  
-2. Start the sshd service in services.msc.  
-3. Connect using any SFTP client (like FileZilla or WinSCP).  
-4. The FolderWatch module will detect new files and add them to the slideshow instantly, provided they exceed the minimum valid file size.
+The FolderWatch module will detect new files and add them to the slideshow instantly.
 
 ## **📝 License**
 
