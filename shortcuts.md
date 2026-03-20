@@ -1,5 +1,5 @@
 
-# ⌨️ Digital Frame Shortcut Guide
+# ⌨️ Digitalframe Shortcut Guide
 
 This guide lists all the keyboard shortcuts available to control the Digital Frame application.
 
