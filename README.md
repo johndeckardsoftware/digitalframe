@@ -1,5 +1,5 @@
 
-**Digital Frame (DF)**
+**Digitalframe (DF)**
 
 An advanced, modular digital photo frame system developed in Python using **pyray** (Raylib). This project is designed to run seamlessly on both **Windows**, **Linux** and **Raspberry Pi4**, offering fluid rendering of images, videos, and 3D models with deep hardware integration for home automation.
 
