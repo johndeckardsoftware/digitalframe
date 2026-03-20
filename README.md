@@ -1,20 +1,23 @@
 
 **Digitalframe (DF)**
 
-An advanced, modular digital photo frame system developed in Python using **pyray** (Raylib). This project is designed to run seamlessly on both **Windows**, **Linux** and **Raspberry Pi4**, offering fluid rendering of images, videos, and 3D models with deep hardware integration for home automation.
+An advanced, modular digital photo frame system developed in Python using **pyray** (Raylib). This project is designed to run on **Raspberry Pi4** homemade digitalframe [www.thedigitalpictureframe.com](https://www.thedigitalpictureframe.com/) but run seamlessly on both **Windows** and **Linux**, offering fluid rendering of images, videos, and 3D models with deep hardware integration for home automation.
 
 ## **🚀 Key Features**
 
-* **Multi-format Support:** Native rendering of images (JPG, PNG, GIF), videos (MP4, AVI) via OpenCV, and 3D models (GLB, OBJ).  
-* **Live Folder Monitoring:** Real-time library updates using watchdog. Perfect for syncing files via **SFTP** or network shares without restarting.  
-* **Adaptive Brightness:** Automatic monitor brightness adjustment based on ambient light.  
-* **Direct hardware integration (Raspberry):**  
+* **Multi-format Support:** Native rendering of images (JPG), videos (MP4, AVI) via OpenCV, and 3D models (GLB, OBJ).  
+* **Visual Enhancements:**
+  * Automatic "matte" background and borders coloring
+	* Matte texture and borders customizable
+  * Pairing of vertical images
+	* Filter by folder and metadata
+* **Direct hardware integration (Raspberry only):**
   * **PIR Sensor:** Automatic screen power management based on human presence.  
-* **Software Integration:**  
-  * **HomeAssistant**
-	* **Light as Motion sensor** thru MQTT for Automatic screen power management based on human presence and ambient light photo blend 
-* **Remote Control Support:** Dynamic key mapping for external HID devices like the BoxPut Remote or BlueDot.  
-* **Visual Enhancements:** Automatic "matte" background and borders coloring for a curated aesthetic.
+* **Remote Control Support:**
+  * Provides an automatic integration into [Home Assistant](https://www.home-assistant.io/) via MQTT discovery.
+	* Dynamic key mapping for external HID devices like the BoxPut Remote or BlueDot.  
+	* Light and Motion sensor** via MQTT for Automatic screen power management based on human presence and ambient light photo blend.
+* **Live Folder Monitoring:** Real-time library updates using watchdog. Perfect for syncing files via **SFTP** or network shares without restarting.
 
 ## **📂 Project Structure**
 
@@ -38,15 +41,26 @@ An advanced, modular digital photo frame system developed in Python using **pyra
 ## **🔧 Installation & Setup**
 
 1. **Clone the repository:**  
-   Bash  
+   ```Bash  
    git clone https://github.com/johndeckardsoftware/digitalframe.git  
    cd digitalframe
-
+   ```
+	 
 2. **Install Python dependencies:**  
-   Bash  
+   ```Bash  
    pip install \-r requirements.txt
+   ```
+3. **Navigate to the project directory:**
+   ```bash
+   cd digitalframe
+   ```
 
-3. **First Run:**  
+4. **Run the application:**
+   ```bash
+   python ./src/df.py
+   ```
+
+5. **First Run:**  
    On the initial launch, if config.json is missing, the program will prompt you to enter the path for your media folder.
 
 ## **⚙️ Media file updates**
@@ -57,3 +71,10 @@ The FolderWatch module will detect new files and add them to the slideshow insta
 
 This project is licensed under the MIT License. See the LICENSE file for details.  
 ---
+
+## Acknowledgements
+
+This software is inspired, or derive parts of the code from the following open source projects:
+
+* [www.thedigitalpictureframe.com](https://www.thedigitalpictureframe.com/)
+* https://github.com/helgeerbe/picframe
