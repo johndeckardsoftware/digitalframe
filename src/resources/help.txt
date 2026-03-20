@@ -1,0 +1,39 @@
+ESC Exit
+F1  This help
+F2  Remote help
+F3  Pause
+F4  Previous
+F5  Next
+F6  Private
+F7  Sleep
+F8  Wakeup
+F9  Change folder up
+F10 Change folder down
+F11 Toogle Fullscreen
+L     Toogle lightness mode
+UP    up lightness
+DOWN  down brightness
+LEFT  Increase light direction angle
+RIGHT Increase light direction angle
+J   Decrease lux adjustment value
+K   Increase lux adjustment value
+B   Border selection
+M   Matte selection
+T   Change Image show time (sec.), autosleep time (min.) 
+C   Toogle clock
+P   Private
+1-6 Toogle item info:  [1] title, [2] caption, [3] name, [4] date, [5] location, [6] folder
+0   Set off all item info
+S   Shuffle
+
+CTRL + 
+F   Show fps
+G   Toogle between 1 and 6 fps
+S   Publish state
+D   Debug on
+Q   Show filter
+M   Show system metrics
+H   Toogle HDMI
+E   Exit
+R   Reboot
+P   Shutdown
