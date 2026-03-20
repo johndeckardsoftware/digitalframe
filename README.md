@@ -12,11 +12,11 @@ An advanced, modular digital photo frame system developed in Python using **pyra
   * Pairing of vertical images
   * Filter by folder and metadata
 * **Direct hardware integration (Raspberry only):**
-  * **PIR Sensor:** Automatic screen power management based on human presence.  
+  * **PIR Sensor:** For automatic screen power management based on human presence.
 * **Remote Control Support:**
   * Provides an automatic integration into [Home Assistant](https://www.home-assistant.io/) via MQTT discovery.
   * Dynamic key mapping for external HID devices like the BoxPut Remote or BlueDot.  
-  * Light and Motion sensor** via MQTT for Automatic screen power management based on human presence and ambient light photo blend.
+  * Light and Motion sensor via MQTT for Automatic screen power management based on human presence and ambient light photo blend.
 * **Live Folder Monitoring:** Real-time library updates using watchdog. Perfect for syncing files via **SFTP** or network shares without restarting.
 
 ## **📂 Project Structure**
