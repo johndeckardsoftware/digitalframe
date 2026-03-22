@@ -1,3 +1,5 @@
 raspberry
 test
-
+*.pyc
+*.psd
+*.log

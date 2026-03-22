@@ -29,14 +29,14 @@ class MQTT:
         self.df = digitalframe
         self.df._publish_state = self.publish_state
 
-        self.device_id = Config.get('mqtt.device_id', None)
+        self.device_id = Config.get('mqtt.device_id', "digitalframe")
         self.device_url = None
-        self.broker = Config.get('mqtt.server', None)
-        self.port = Config.get('mqtt.port', None)
-        self.login = Config.get('mqtt.login', None)
-        self.password = Config.get('mqtt.password', None)
-        self.tls = Config.get('mqtt.tls', None)
-        self.client_id = Config.get('mqtt.client_id', None)
+        self.broker = Config.get('mqtt.server', "server")
+        self.port = Config.get('mqtt.port', 1883)
+        self.login = Config.get('mqtt.login', "user")
+        self.password = Config.get('mqtt.password', "password")
+        self.tls = Config.get('mqtt.tls', "")
+        self.client_id = Config.get('mqtt.client_id', "digitalframe")
         self.client = None
         self.connected = False
         self.wifi_error_count = 0

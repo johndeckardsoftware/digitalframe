@@ -1,4 +1,5 @@
 import sys, os, time, datetime, logging, platform, math
+import argparse
 import traceback
 # https://electronstudio.github.io/raylib-python-cffi/README.html
 from pyray import *
@@ -15,14 +16,17 @@ from devices import Devices
 from mqtt import MQTT
 
 class DigitalFrame:
-    def __init__(self):
+    def __init__(self, fullscreen=None):
         self.exit_code = 0
         self.this = self
         self.platform = platform.system().lower()
         self.logger = logging.getLogger(__name__)
         #self.logger.setLevel(logging.DEBUG)
         self.monitor = 0
-        self.fullscreen = Config.get('window.fullscreen', True)
+        if fullscreen is None:
+            self.fullscreen = Config.get('window.fullscreen', True)
+        else:
+            self.fullscreen = fullscreen
         if self.fullscreen:
             self.width =  Config.get('window.max_width', 3840)  #4K
             self.height = Config.get('window.max_height', 2160)
@@ -41,13 +45,13 @@ class DigitalFrame:
         self.dttls = DrawTextTTLList(self)
         # items list
         self.error = None
-        self.items = DFItemList(self, Config.get('items.path', ['C:/temp/rpi4-frame/Pictures']))
+        self.items = DFItemList(self, Config.get('items.path', ['/path/to/items']))
         # peripherals
         self.devices = Devices(self)
         self.mqtt = None
         self._publish_state = None
         # MyHome / Home Assistant control
-        self.hdmi_power = Config.get('window.hdmi_power', 3)
+        self.hdmi_power = Config.get('window.hdmi_power', 2) # 3 for windows
         self.hdmi_is_connected = hdmi_is_connected(self)
         self.hdmi_off_timeout = Config.get('window.hdmi_off_timeout', 0)
         self.image_ttl = Config.get('items.types.image.ttl', 10) # time to live in seconds
@@ -379,32 +383,42 @@ brightness={self.brightness}, lux={self.lux}, shader={self.use_light_shader}, mo
         self.exit_code = 2
         self.keep_looping = False
 
-def main():
-    config_file = None if len(sys.argv) == 1 else sys.argv[1]
-    if not Config.exists(config_file):
-        while True:
-            path = input("As first run (config.json not found) input the images path:")
-            if os.path.exists(path):
-                break
-            else:
-                print(f"'{path}' does not exist, please input a valid path")
-    else:
-        path = None
+def ask_item_path():
+    while True:
+        path = input("Since this is the first time you're launching the app, enter the path to your media file:")
+        if os.path.exists(path):
+            break
+        else:
+            print(f"'{path}' does not exist, please input a valid path")
+    return path
 
-    if Config.init(config_file, path):
-        try:
+def main(args):
+    try:
+        logging.basicConfig(filename=args.log_file, filemode='a', format="%(asctime)s %(levelname)s %(module)s %(lineno)s: %(message)s", level=logging.INFO)
+        #logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+        logger = logging.getLogger(__name__)
+        logger.info(f"starting {sys.argv}")
+
+        if Config.init(args.config_file):    
+            if not Config.configured(args.reset_config):
+                path = ask_item_path()
+                Config.configure(path)
+
             log_level = Config.get("window.log_level", logging.INFO)
-            logging.basicConfig(filename='digitalframe.log', filemode='a', format="%(asctime)s %(levelname)s %(module)s %(lineno)s: %(message)s", level=log_level)
-            #logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-            logger = logging.getLogger(__name__)
-            logger.info(f"starting {sys.argv}")
-            df = DigitalFrame()
+            logger.setLevel(log_level)
+            df = DigitalFrame(fullscreen=args.fullscreen)
             return df.main_loop()
-        except Exception as e:
-            logger.error(traceback.format_exc())
-            return 129
-    else:
-        return 128
+        else:
+            return 128
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        return 129
 
 if __name__ == "__main__":
-    exit(main())
+    parser = argparse.ArgumentParser(description='digitalframe 1.0')
+    parser.add_argument("-c", "--config", help="Config filename", dest="config_file", default="config.json")
+    parser.add_argument("-l", "--log", help="Log file", dest="log_file", default="digitalframe.log")
+    parser.add_argument("-f", "--fullscreen", action="store_true", help="Start app in fullscreen")
+    parser.add_argument("--reset-config", action="store_true", help="Reset config as the first run")
+    args = parser.parse_args()
+    exit(main(args))

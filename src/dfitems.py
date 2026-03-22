@@ -16,11 +16,10 @@ class DFItemList:
         self.indexes = None
         self.index = 0
         self.last_index = 0
-        self.type_ext = Config.get('items.types', {
-            'image': {'ext': ['.jpg', '.jpeg']},
-            'video': {'ext': ['.mp4', '.mpg', ".avi"]},
-            'model': {'ext': ['.glb', '.obj', '.gltf']},
-            })
+        self.type_ext = Config.get('items.types.image.ext', ['.jpg', '.jpeg'])
+        self.type_ext = Config.get('items.types.video.ext', ['.mp4', '.mpg', ".avi"])
+        self.type_ext = Config.get('items.types.model.ext', ['.glb', '.obj', '.gltf'])
+        self.type_ext = Config.get('items.types', {})
         self.filter = Config.get('items.filter', "")
         self.filter_prev = None
         self.filter_error = None
@@ -214,7 +213,7 @@ class DFItemList:
                 },
                 "location": {
                     "enabled": False,
-                    "tag": "GPS GPSLatitude|GPS GPSLongitude"
+                    "tag": "GPS GPSLatitude&GPS GPSLongitude"
                 },
                 "directory": {
                     "enabled": False,

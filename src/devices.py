@@ -326,9 +326,8 @@ class BoxPutRemote():
 
     def __init__(self, controller):
         self.df = controller
-        self.config = Config.get('boxput', {})
         self.boxput = None
-        self.wait_time = Config.get('wait_time', 10, self.config)
+        self.wait_time = Config.get('boxput.wait_time', 10)
         self.mode = BoxPutRemote.CTRL_DIGITALFRAME
         self.first_key_hold = True
         self.actual_dir, self.dir_list = controller.items.get_folders()
@@ -527,7 +526,6 @@ class BoxPutRemote():
 
 class BlueDotRemote():
     def __init__(self, controller):
-        self.config = Config.get('bluedot', {})
         self.df = controller
         self.bluedot_thread = threading.Thread(target=self.handle_bluedot)
         self.bluedot_thread.start()
@@ -681,7 +679,6 @@ class BlueDotRemote():
 
 class FanController():
     def __init__(self, controller):
-        self.config = Config.get('fan', {})
         self.df = controller
         self.fan_thread = threading.Thread(target=self.handle_fan)
         self.fan_thread.start()
@@ -693,9 +690,9 @@ class FanController():
         from utils.metrics import get_cpu_temp
         try:
             from gpiozero import OutputDevice
-            pin = self.config.get('pin', 14)
-            trigger = self.config.get('trigger', 50)
-            sleep = self.config.get('sleep', 60)
+            pin = Config.get('fan.pin', 14)
+            trigger = Config.get('fan.trigger', 50)
+            sleep = Config.get('fan.sleep', 60)
             self.fan_device = OutputDevice(pin=pin)
             self.status = "running"
             logger.info(f"Fan controller started")

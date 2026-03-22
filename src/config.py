@@ -1,5 +1,7 @@
-import os
+import os, logging
 import json, re
+import ast
+from pathlib import Path
 
 class ItemType:
     IMAGE = 0
@@ -9,16 +11,20 @@ class ItemType:
 
 class Config:
     WORK_PATH = None
+    SOURCE_PATH = None
     RESOURCES = None
-    AUTO_SET = True
+    AUTO_SET = False
     config_file = None
     config = {}
 
     @staticmethod
     def init(file=None, path=None):
-        Config.WORK_PATH = os.path.realpath(os.path.dirname(__file__))
-        if not (file and os.path.exists(file)):
+        Config.WORK_PATH = os.getcwd()
+        #if not (file and os.path.exists(file)):
+        if not file:
             Config.config_file = 'config.json'
+        else:
+            Config.config_file = file
 
         if os.path.exists(Config.config_file):
             try:
@@ -28,27 +34,30 @@ class Config:
                 print(f"Error loading {Config.config_file}: {e}")
                 return False
 
-        Config.RESOURCES = Config.get('window.resources', os.path.join(Config.WORK_PATH, 'resources'))
-        if path:
-            Config.set('items.path', [path])
+        Config.SOURCE_PATH = os.path.realpath(os.path.dirname(__file__))
+        Config.RESOURCES = Config.get('window.resources', os.path.join(Config.SOURCE_PATH, 'resources'))
         return True
 
     @staticmethod
-    def exists(file=None):
-        if not (file and os.path.exists(file)):
-            if not file: file = 'config.json'
-            if os.path.exists(file):
-                return True
-            else:
-                return False
+    def configured(reset_config):
+        path = Config.get('items.path', None)
+        Config.AUTO_SET = True
+        if path is None or path[0] == "/path/to/items":
+            return False
         else:
             return True
+
+    @staticmethod
+    def configure(path):
+        config_setup(create_md=False)
+        Config.set('items.path', [path])
+        return True
 
     @staticmethod
     def save():
         with open(Config.config_file, "w", encoding="utf-8") as f:
             json_style = json.dumps(Config.config, indent=4)
-            compact_json = re.sub(r'\[\s+([^\]]+?)\s+\]', 
+            compact_json = re.sub(r'\[\s+([^\]]+?)\s+\]',
                       lambda m: "[" + re.sub(r'\s+', ' ', m.group(1)).strip() + "]", json_style)
             f.write(compact_json)
 
@@ -96,3 +105,83 @@ class Config:
     def get_color(key: str, _default: any, c: dict = None) -> any:
         color = Config.get(key, _default, c)
         return (color[0], color[1], color[2], color[3])
+
+
+def analyze_config_calls(file_path, key_default, full_call):
+    with open(file_path, 'rb') as f:
+        source = f.read().decode('utf-8')
+
+    # We use AST to find the calls because it's cleaner for high-level searching
+    tree = ast.parse(source)
+
+    for node in ast.walk(tree):
+        # We look for: Call nodes -> Attribute (Config.get)
+        if isinstance(node, ast.Call):
+            if (isinstance(node.func, ast.Attribute) and
+                node.func.attr == 'get' and
+                getattr(node.func.value, 'id', None) == 'Config'):
+
+                # Extracting details
+                call_snippet = ast.unparse(node)
+                line_no = node.lineno
+
+                # Extract args
+                pos_args = [ast.unparse(a) for a in node.args]
+                kw_args = {kw.arg: ast.unparse(kw.value) for kw in node.keywords}
+
+                if call_snippet not in full_call:
+                    full_call.append(call_snippet)
+                    key_default.append({
+                        "line": line_no,
+                        "full_call": call_snippet,
+                        "key": pos_args[0] if pos_args else "Unknown",
+                        "default": pos_args[1] if pos_args else "Unknown",
+                    })
+
+def list_files(path, key_default, full_call):
+    for entry in os.scandir(path):
+        if entry.is_file():
+            if entry.name != "config.py" and entry.name.endswith(".py"):
+                analyze_config_calls(entry.path, key_default, full_call)
+        else:
+            list_files(entry.path, key_default, full_call)
+
+def config_setup(create_md=False):
+    logger = logging.getLogger(__name__)
+    key_default = []
+    full_call = []
+    list_files(Config.WORK_PATH, key_default, full_call)
+
+    #full_call = sorted(full_call)
+    #key_default = sorted(key_default, key=lambda x: x['key'].lower())
+
+    make_config = "\nimport os, logging\n"
+    for item in full_call:
+        make_config += item + "\n"
+    make_config += "\nConfig.save()"
+
+    try:
+        exec(make_config)
+        logger.info(f"{Config.config_file} created successfully ({len(full_call)} entries).")
+    except Exception as e:
+        logger.error(f"{make_config}\nExecution failed: {e}")
+
+    # Write to Markdown file
+    if create_md:
+        output_file = Path(Config.config_file).stem + ".md"
+        with open(output_file, "w") as md:
+            md.write("# Configuration Inventory\n\n")
+            md.write("| Key | Default Value | Description |\n")
+            md.write("| :--- | :--- | :--- |\n")
+
+            for key, item in Config.config.items():
+                out_item(md, key, key, item)
+
+        logger.info(f"Successfully generated {output_file}")
+
+def out_item(md, fullkey, key, item):
+    if isinstance(item, dict):
+        for k, i in item.items():
+            out_item(md, f"{fullkey}.{k}", k, i)
+    else:
+        md.write(f"| `{fullkey}` | `{item}` | {key} |\n")
