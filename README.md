@@ -45,7 +45,7 @@ An advanced, modular digital photo frame system developed in Python using **pyra
    git clone https://github.com/johndeckardsoftware/digitalframe.git  
    cd digitalframe
    ```
-2. **Create virtual env (if requested by teh system):**  
+2. **Create virtual env (if requested by the system):**  
    ```Bash  
    python -m venv venv/
    source venv/bin/activate
