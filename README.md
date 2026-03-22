@@ -45,23 +45,21 @@ An advanced, modular digital photo frame system developed in Python using **pyra
    git clone https://github.com/johndeckardsoftware/digitalframe.git  
    cd digitalframe
    ```
-   
-2. **Install Python dependencies:**  
+2. **Create virtual env (if requested by teh system):**  
    ```Bash  
-   pip install \-r requirements.txt
+   python -m venv venv/
+   source venv/bin/activate
    ```
-3. **Navigate to the project directory:**
-   ```bash
-   cd digitalframe
+3. **Install requirements:**  
+   ```Bash  
+   pip install -r requirements.txt
    ```
-
 4. **Run the application:**
    ```bash
    python ./src/df.py
    ```
-
 5. **First Run:**  
-   On the initial launch, if config.json is missing, the program will prompt you to enter the path for your media folder.
+   On the initial launch, if configuration file is not found, the program will prompt you to enter the path for your media folder and will create a default configuration file.
 
 ## **⚙️ Media file updates**
 
