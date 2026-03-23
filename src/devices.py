@@ -59,7 +59,7 @@ class Devices:
         self.show_mode = Config.get('items.types.image.show_times', [(60.0, 30.0), (10.0, 60.0), (60.0, 60.0), (15.0, 5.0), (60.0, 10.0)]) #ttl, autosleep
         self.show_mode_index = 0
         self.time_delay, self.autosleep = self.show_mode[0]
-
+        self.inc_value = 5
         self.help = self.load_help()
         self.help_color=Config.get('window.help_color', (255,255,255,255))
         self.metrics_color=Config.get('window.metrics_color', (255,255,255,255))
@@ -121,6 +121,12 @@ class Devices:
                 self.df.reboot()
             elif key == KeyboardKey.KEY_E:
                 self.df.close()
+            elif key == KeyboardKey.KEY_ZERO:
+                self.inc_value = 20
+                self.show3(f"increment: {self.inc_value}")
+            elif key >= KeyboardKey.KEY_ONE and key <= KeyboardKey.KEY_NINE:
+                self.inc_value = key - 48
+                self.show3(f"increment: {self.inc_value}")
 
         elif key == KeyboardKey.KEY_F1:
             self.show(self.help, 3, 3, tint=self.help_color, fs=-28, shadow=2, ttl=24)
@@ -186,12 +192,22 @@ class Devices:
             self.show3(f"ambient light: {'on' if self.df.brightness_enabled else 'off'}", ttl=2)
 
         elif key == KeyboardKey.KEY_K:
-            self.df.lux_adj += 10
+            self.df.set_lux_adj(self.inc_value)
             self.show3(f"lux adjustement value: {self.df.lux_adj}", ttl=2)
 
         elif key == KeyboardKey.KEY_J:
-            self.df.lux_adj -= 10
+            self.df.set_lux_adj(-self.inc_value)
             self.show3(f"lux adjustement value: {self.df.lux_adj}", ttl=2)
+
+        elif key == KeyboardKey.KEY_P:
+            lux = self.df.lux + self.inc_value
+            self.df.set_brightness(lux)
+            self.show3(f"lux value: {lux}", ttl=2)
+
+        elif key == KeyboardKey.KEY_O:
+            lux = self.df.lux - self.inc_value if self.df.lux > 0 else 0
+            self.df.set_brightness(lux)
+            self.show3(f"lux value: {lux}", ttl=2)
 
         elif key == KeyboardKey.KEY_UP:
             if not self.df.brightness_enabled:

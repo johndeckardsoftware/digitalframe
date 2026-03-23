@@ -60,7 +60,7 @@ class DigitalFrame:
         self.paused = False
         # light
         self.lux = 0            # value from the sensor
-        self.lux_adj = Config.get('window.lux_adjustment', 130) 
+        self.lux_adj = Config.get('window.lux_adjustment', 40)
         self.brightness = 0     # value form image_brigthness or ligth_shader
         self.brightness_enabled = True
         self.use_light_shader = Config.get('items.types.image.use_light_shader', True)
@@ -83,8 +83,9 @@ class DigitalFrame:
         # actual item
         self.item = None
         # config vars
-        self.debug_color=Config.get('window.debug_color', (255,255,255,255))
-        self.error_color=Config.get('window.error_color', (255,0,0,255))
+        self.debug_color = Config.get('window.debug_color', (255,255,255,255))
+        self.debug_fontsize = -24 if self.fullscreen else -12
+        self.error_color = Config.get('window.error_color', (255,0,0,255))
         # work handles
         self.texture = None
         self.matte = None
@@ -166,10 +167,12 @@ class DigitalFrame:
 
         # Load shader
         if self.use_light_shader:
-            self.shader = load_shader(ffi.NULL, "src/resources/linear_light.fs")
-            int_loc = get_shader_location(self.shader, "uIntensity")
-            dir_loc = get_shader_location(self.shader, "uDirection")
-            soft_loc = get_shader_location(self.shader, "uSoftness")
+            #self.shader = load_shader(ffi.NULL, "src/resources/linear_light.fs")
+            #int_loc = get_shader_location(self.shader, "uIntensity")
+            #dir_loc = get_shader_location(self.shader, "uDirection")
+            #soft_loc = get_shader_location(self.shader, "uSoftness")
+            self.shader = load_shader(ffi.NULL, "src/resources/lightness.fs")
+            bright_loc = get_shader_location(self.shader, "brightness")
 
         set_target_fps(clock.fps)
         while not window_should_close() and self.keep_looping:
@@ -186,7 +189,7 @@ class DigitalFrame:
 
             # Set shader
             if self.use_light_shader:
-                self.set_light_shader(self.shader, int_loc, dir_loc, soft_loc)
+                self.set_light_shader(self.shader, bright_loc)
 
             #
             begin_drawing()
@@ -206,7 +209,7 @@ class DigitalFrame:
 
             if self.show_debug and self.debug:
                 msg = self.get_debug_msg()
-                dftext(msg, -1, 0, font=self.font, fs=-24, tint=self.debug_color, shadow=2)
+                dftext(msg, -1, 0, font=self.font, fs=self.debug_fontsize, tint=self.debug_color, shadow=2)
 
             if self.show_fps:
                 draw_fps(10, 10)
@@ -228,7 +231,7 @@ class DigitalFrame:
     def mqtt_init(self):
         if Config.get('mqtt.enabled', False):
             self.mqtt = MQTT(self)
-        else:                
+        else:
             conf = Config.get('mqtt', None)
             if conf and 'server' not in conf:
                 conf["server"] = "server"
@@ -265,13 +268,17 @@ class DigitalFrame:
         return self.brightness
 
     def set_brightness(self, value):
-        value += self.lux_adj
         self.lux = value
+        value += self.lux_adj
         b = self.brightness
         self.brightness= convert_lux_to_range(value)
         if value != b: self.publish_state()
 
-    def set_light_shader(self, shader, int_loc, dir_loc, soft_loc):
+    def set_lux_adj(self, value):
+        self.lux_adj += value
+        self.set_brightness(self.lux)
+
+    def set_gradient_light_shader(self, shader, int_loc, dir_loc, soft_loc):
         # 1. Normalize Intensity: map -64/64 to roughly -1.0/1.0
         # You can adjust the divisor (64.0) to control how "harsh" the light is
         norm_intensity = self.brightness / 128.0
@@ -287,6 +294,16 @@ class DigitalFrame:
         # Send softness to GPU
         # Lower values (0.2) make a "hard line" of light, higher values (2.0) make the light very subtle and spread out
         set_shader_value(shader, soft_loc, ffi.new("float *", self.light_softness), ShaderUniformDataType.SHADER_UNIFORM_FLOAT)
+
+    def set_light_shader(self, shader, bright_loc):
+        # Clamp input to your specific range
+        #input_value = max(-128.0, min(128.0, self.brightness))
+
+        # 3. Normalize for the shader (-1.0 to 1.0)
+        normalized_brightness = self.brightness / 128.0
+
+        # 4. Send the float value to the shader
+        set_shader_value(shader, bright_loc, ffi.new("float *", normalized_brightness), ShaderUniformDataType.SHADER_UNIFORM_FLOAT)
 
     def set_matting(self, value):
         self.matting = True if value else False
@@ -399,7 +416,7 @@ def main(args):
         logger = logging.getLogger(__name__)
         logger.info(f"starting {sys.argv}")
 
-        if Config.init(args.config_file):    
+        if Config.init(args.config_file):
             if not Config.configured(args.reset_config):
                 path = ask_item_path()
                 Config.configure(path)
