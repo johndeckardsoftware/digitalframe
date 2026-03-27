@@ -9,7 +9,8 @@ import clock
 from config import Config, ItemType
 from utils.folderwatch import FolderWatch
 from utils.display import hdmi_set_on, hdmi_set_off, hdmi_is_connected
-from utils.lux2brightness import convert_lux_to_range
+from utils.lux2brightness import convert_lux_to_range, get_gauss_hour
+from dfshader import create_shader
 from dfitems import DFItemList
 from dftext import DrawTextTTLList, dftext, update_dftext_vars
 from devices import Devices
@@ -36,10 +37,8 @@ class DigitalFrame:
         self.ratio = round(self.width / self.height, 2)
         # timing
         clock.fps = Config.get('window.fps', 1)
-        clock.rft = 1 / clock.fps
-        self.fps = clock.fps
-        self.ft = clock.rft
-        self.ftt = 0
+        clock.ft = 1 / clock.fps
+        clock.rft = clock.ft
         self.show_fps = Config.get('window.show_fps', False)
         # draw ttl
         self.dttls = DrawTextTTLList(self)
@@ -60,14 +59,11 @@ class DigitalFrame:
         self.paused = False
         # light
         self.lux = 0            # value from the sensor
-        self.lux_adj = Config.get('window.lux_adjustment', 40)
-        self.brightness = 0     # value form image_brigthness or ligth_shader
-        self.brightness_enabled = True
-        self.use_light_shader = Config.get('items.types.image.use_light_shader', True)
-        self.light_direction = Config.get('items.types.image.light_direction', 0)
+        self.lux_adj = Config.get('window.lux_adjustment', 50)
+        self.brightness = 0     # value in range -128 +128
+        self.brightness_normalized = 0 # brightness normalized for the shader
+        self.ambient_light = True # True to mimic ambient light
         self.shader = None
-        # Lower values (0.2) make a "hard line" of light, higher values (2.0) make the light very subtle and spread out
-        self.light_softness = Config.get('items.types.image.light_softness', 3.0)
         # motion
         self.motion = 0
         self.motion_enabled = True
@@ -166,13 +162,7 @@ class DigitalFrame:
         self.font = load_font(os.path.join(Config.RESOURCES, Config.get('window.font', "LiberationMono-Regular.ttf")))
 
         # Load shader
-        if self.use_light_shader:
-            #self.shader = load_shader(ffi.NULL, "src/resources/linear_light.fs")
-            #int_loc = get_shader_location(self.shader, "uIntensity")
-            #dir_loc = get_shader_location(self.shader, "uDirection")
-            #soft_loc = get_shader_location(self.shader, "uSoftness")
-            self.shader = load_shader(ffi.NULL, "src/resources/lightness.fs")
-            bright_loc = get_shader_location(self.shader, "brightness")
+        self.shader = create_shader(self)
 
         set_target_fps(clock.fps)
         while not window_should_close() and self.keep_looping:
@@ -187,19 +177,15 @@ class DigitalFrame:
             if not self.paused and self.items.count():
                 self.item_process()
 
-            # Set shader
-            if self.use_light_shader:
-                self.set_light_shader(self.shader, bright_loc)
+            self.shader.update()
 
             #
             begin_drawing()
 
             if self.item:
-                if self.use_light_shader:
-                    begin_shader_mode(self.shader)
+                self.shader.begin()
                 self.item.draw()
-                if self.use_light_shader:
-                    end_shader_mode()
+                self.shader.end()
 
             self.dttls.draw_ttl()
 
@@ -267,43 +253,23 @@ class DigitalFrame:
     def get_brightness(self):
         return self.brightness
 
+    def get_brightness_normalized(self):
+        if self.ambient_light:
+            return self.brightness_normalized
+        else:
+            return 0    # for original brightness
+
     def set_brightness(self, value):
         self.lux = value
-        value += self.lux_adj
+        value += self.lux_adj * get_gauss_hour()
         b = self.brightness
-        self.brightness= convert_lux_to_range(value)
-        if value != b: self.publish_state()
+        self.brightness = convert_lux_to_range(value)
+        self.brightness_normalized = self.brightness / 128.0
+        if self.brightness != b: self.publish_state()
 
     def set_lux_adj(self, value):
         self.lux_adj += value
         self.set_brightness(self.lux)
-
-    def set_gradient_light_shader(self, shader, int_loc, dir_loc, soft_loc):
-        # 1. Normalize Intensity: map -64/64 to roughly -1.0/1.0
-        # You can adjust the divisor (64.0) to control how "harsh" the light is
-        norm_intensity = self.brightness / 128.0
-
-        # 2. Convert Degrees to a Direction Vector
-        radians = math.radians(self.light_direction)
-        dir_x = math.cos(radians)
-        dir_y = math.sin(radians)
-
-        # 3. Send to GPU
-        set_shader_value(shader, int_loc, ffi.new("float *", norm_intensity), ShaderUniformDataType.SHADER_UNIFORM_FLOAT)
-        set_shader_value(shader, dir_loc, ffi.new("float[2]", [dir_x, dir_y]), ShaderUniformDataType.SHADER_UNIFORM_VEC2)
-        # Send softness to GPU
-        # Lower values (0.2) make a "hard line" of light, higher values (2.0) make the light very subtle and spread out
-        set_shader_value(shader, soft_loc, ffi.new("float *", self.light_softness), ShaderUniformDataType.SHADER_UNIFORM_FLOAT)
-
-    def set_light_shader(self, shader, bright_loc):
-        # Clamp input to your specific range
-        #input_value = max(-128.0, min(128.0, self.brightness))
-
-        # 3. Normalize for the shader (-1.0 to 1.0)
-        normalized_brightness = self.brightness / 128.0
-
-        # 4. Send the float value to the shader
-        set_shader_value(shader, bright_loc, ffi.new("float *", normalized_brightness), ShaderUniformDataType.SHADER_UNIFORM_FLOAT)
 
     def set_matting(self, value):
         self.matting = True if value else False
@@ -346,9 +312,9 @@ class DigitalFrame:
 
     def get_debug_msg(self):
         msg = f"screen={self.width}x{self.height}, ratio={self.ratio}, folder={self.items.folder}, \
-hdmi_off_timeout={self.hdmi_off_timeout}, image_ttl={self.image_ttl}, brightness_enabled={self.brightness_enabled}, \
-brightness={self.brightness}, lux={self.lux}, shader={self.use_light_shader}, motion_enabled={self.motion_enabled}, motion={self.motion}, \
-{self.debug}"
+sleep={self.hdmi_off_timeout} min., ttl={self.image_ttl}, ambient={self.ambient_light}, \
+brightness={self.brightness}, lux={self.lux}, adj={self.lux_adj}, shader={self.shader.name}, motion_enabled={self.motion_enabled}, \
+motion={self.motion}, {self.debug}"
         return msg
 
     def remote_help(self):
@@ -370,7 +336,7 @@ brightness={self.brightness}, lux={self.lux}, shader={self.use_light_shader}, mo
             self.logger.info(f"start stopping...")
             self.keep_looping = False
             if self.item: self.item.close()
-            if self.use_light_shader: unload_shader(self.shader)
+            if self.shader: self.shader.unload()
             if self.texture: unload_texture(self.texture)
             if self.matte: unload_texture(self.matte)
             if self.border: unload_texture(self.border)
@@ -393,11 +359,11 @@ brightness={self.brightness}, lux={self.lux}, shader={self.use_light_shader}, mo
         self.keep_looping = False
 
     def reboot(self):
-        self.exit_code = 1
+        self.exit_code = 100
         self.keep_looping = False
 
     def power_down(self):
-        self.exit_code = 2
+        self.exit_code = 101
         self.keep_looping = False
 
 def ask_item_path():

@@ -666,7 +666,7 @@ class MQTT:
             sensor_state_payload["autosleep"] = self.df.hdmi_off_timeout
 
             # update directory list
-            dir_list.sort() 
+            dir_list.sort()
             self.setup_select(self.client, "directory", dir_list, "mdi:folder-multiple-image", available_topic, init=False)
 
             # publish sensors

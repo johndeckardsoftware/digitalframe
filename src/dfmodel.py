@@ -45,7 +45,7 @@ class DFItemModel:
     def model_process(self):
         if self.model: unload_model(self.model)
         self.model = load_model(self.file)
-        set_target_fps(self.fps)
+        clock.push_set_fps(self.fps)
         self.processed = True
 
     def model_update(self):
@@ -66,7 +66,7 @@ class DFItemModel:
         end_mode_3d()
 
         if self.ftt > self.ttl or self._skip:
-            set_target_fps(self.df.fps)
+            clock.pop_set_fps()
             unload_model(self.model)
             self.model = None
             self._skip = False

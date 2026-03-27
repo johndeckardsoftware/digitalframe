@@ -72,9 +72,8 @@ class DFItemVideo:
         self.df.texture = load_texture_from_image(image)
         unload_image(image)
 
-        #set_target_fps(self.fps)
         self.fps = self.video.get(cv2.CAP_PROP_FPS)
-        set_target_fps(int(self.fps))
+        clock.push_set_fps(int(self.fps))
         self.processed = True
 
     def video_update(self):
@@ -104,7 +103,7 @@ class DFItemVideo:
         draw_texture_pro(self.df.texture, self.source_rec, self.dest_rec, self.origin, 0.0, WHITE)
 
         if self.ftt > self.ttl or self._skip:
-            set_target_fps(self.df.fps)
+            clock.pop_set_fps()
             self.video.release()
             self.video = None
             self._skip = False

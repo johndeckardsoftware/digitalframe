@@ -108,9 +108,10 @@ class Devices:
             elif key == KeyboardKey.KEY_F:
                 self.df.show_fps = not self.df.show_fps
             elif key == KeyboardKey.KEY_G:
-                clock.fps = 6 if clock.fps == 1 else 1
-                clock.rft = 1 / clock.fps
-                set_target_fps(clock.fps)
+                fps = clock.get_fps()
+                fps = 6 if fps == 1 else 1
+                clock.set_fps(fps)
+                self.show3(f"{clock.fps} fps")
             elif key == KeyboardKey.KEY_H:
                 hdmi_toogle(self.df)
             elif key == KeyboardKey.KEY_S:
@@ -186,10 +187,8 @@ class Devices:
             self.df.toogle_window_size()
 
         elif key == KeyboardKey.KEY_L:
-            self.df.brightness_enabled = not self.df.brightness_enabled
-            if not self.df.brightness_enabled:
-                self.df.brightness = 0
-            self.show3(f"ambient light: {'on' if self.df.brightness_enabled else 'off'}", ttl=2)
+            self.df.ambient_light = not self.df.ambient_light
+            self.show3(f"ambient light: {'on' if self.df.ambient_light else 'off'}", ttl=2)
 
         elif key == KeyboardKey.KEY_K:
             self.df.set_lux_adj(self.inc_value)
@@ -210,22 +209,26 @@ class Devices:
             self.show3(f"lux value: {lux}", ttl=2)
 
         elif key == KeyboardKey.KEY_UP:
-            if not self.df.brightness_enabled:
+            if not self.df.ambient_light:
                 self.df.brightness = self.df.brightness + 3 if self.df.brightness < 64 else -64
                 self.show3(f"brightness {self.df.brightness}")
 
         elif key == KeyboardKey.KEY_DOWN:
-            if not self.df.brightness_enabled:
+            if not self.df.ambient_light:
                 self.df.brightness = self.df.brightness - 3 if self.df.brightness > -64 else 64
                 self.show3(f"brightness {self.df.brightness}")
 
         elif key == KeyboardKey.KEY_LEFT:
-            self.df.light_direction = self.df.light_direction + 10 if self.df.light_direction < 360 else 0
-            self.show3(f"light direction {self.df.light_direction}")
+            ld = self.df.shader.config_get('uDirection')
+            ld = ld + 10 if ld < 360 else 0
+            self.show3(f"light direction {ld}")
+            self.df.shader.config_set('uDirection', ld)
 
         elif key == KeyboardKey.KEY_RIGHT:
-            self.df.light_direction = self.df.light_direction - 10 if self.df.light_direction > 0 else 360
-            self.show3(f"light direction {self.df.light_direction}")
+            ld = self.df.shader.config_get('uDirection')
+            ld = ld - 10 if ld > 0 else 360
+            self.show3(f"light direction {ld}")
+            self.df.shader.config_set('uDirection', ld)
 
         elif key == KeyboardKey.KEY_B:
             i = self.cur_border
@@ -472,10 +475,8 @@ class BoxPutRemote():
                                 # ambient light
                                 elif key_event.scancode == evdev.ecodes.KEY_MUTE:
                                     if self.mode == BoxPutRemote.CTRL_DIGITALFRAME:
-                                        self.df.brightness_enabled = not self.df.brightness_enabled
-                                        if not self.df.brightness_enabled:
-                                            self.df.brightness = 0
-                                        self.show(f"ambient light: {'on' if self.df.brightness_enabled else 'off'}")
+                                        self.df.ambient_light = not self.df.ambient_light
+                                        self.show(f"ambient light: {'on' if self.df.ambient_light else 'off'}")
                                     else:
                                         self.show(f"key unconfigured")
 
@@ -519,12 +520,8 @@ class BoxPutRemote():
     def set_digitalframe_brightness(self, value):
         b = self.df.brightness
         b += value
-        if b > 255 or b < -255:
+        if b > 128 or b < -128:
             b = 0
-        #be = self.df.brightness_enabled
-        #self.df.brightness_enabled = True
-        #self.df.set_brightness(b)
-        #self.df.brightness_enabled = be
         self.df.brightness = b
         self.show(f"brightness: {b}")
 
