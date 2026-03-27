@@ -33,6 +33,12 @@ class DFItemImage:
         # timing
         self.ftt = 0
         self.ttl = 0 # if != 0 override image_ttl
+        # fade
+        self.fade = Config.get('items.types.image.fade', False)
+        self._fade = False
+        self.fade_speed = Config.get('items.types.image.fade_speed', 2.0)
+        self.fade_inc = int(255 / (clock.fps * self.fade_speed))
+        self.alpha = 0
         # update
         self.update = self.image_update
         # drawing
@@ -113,7 +119,7 @@ class DFItemImage:
 
         if not self.histogram:
             self.histogram = Histogram(self.name, image)
-            self.matte_rgb = self.histogram.get_mat_color()
+        self.matte_rgb = self.histogram.get_mat_color()
 
         width = height = left_margin = top_margin = 0
         if self.df.ratio == self.ratio:
@@ -167,11 +173,14 @@ class DFItemImage:
                 if border: unload_image(border)
                 image = matte
 
-        self.df.debug = f"{self.name=}, resize={width}x{height} {self.ratio=} {left_margin=} {top_margin=}"
+        if self.fade:
+            self.alpha = 0
+            self._fade = True
+            self.fade_inc = int(255 / (clock.fps * self.fade_speed))
+        else:
+            self.alpha = 255
 
-        if not self.df.use_light_shader:
-            if self.df.brightness:
-                image_color_brightness(image, self.df.brightness)
+        self.df.debug = f"{self.name=}, resize={width}x{height} {self.ratio=} {left_margin=} {top_margin=}"
 
         if self.df.texture: unload_texture(self.df.texture)
         self.df.texture = load_texture_from_image(image)
@@ -179,12 +188,19 @@ class DFItemImage:
 
     def image_update(self):
         self.ftt += clock.rft
+
+        if self._fade:
+            self.alpha += self.fade_inc
+            if self.alpha > 255:
+                self.alpha = 255
+                self._fade = False
+
         if not self.processed:
             self.image_process()
             self.processed = True
 
     def image_draw(self):
-        draw_texture(self.df.texture, self.x, self.y, (255, 255, 255, 255))
+        draw_texture(self.df.texture, self.x, self.y, (255, 255, 255, self.alpha))
         if self.items.meta_show:
             self.show_tags()
         #self.histogram.draw()
@@ -239,5 +255,6 @@ class DFItemImage:
         if not tv: return ""
         if tv != "":
             if not isinstance(tv, str): tv = str(tv)
+            tv = tv.replace("\\", "/")
             tv = tv.replace("'", "\\'")
         return tv
