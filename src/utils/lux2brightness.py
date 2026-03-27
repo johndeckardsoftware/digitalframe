@@ -63,3 +63,21 @@ def convert_lux_to_range(lux_input, lux_average=0, lux_max=15000, use_logarithmi
             result = ((lux_input - lux_average) / (lux_max - lux_average)) * 128
 
     return int(result)
+
+def get_gauss_hour(hour=None, peak_hour=12.0, spread=16.0, max_height=1.0):
+    """
+    Returns a y-value on a Gaussian curve for a given hour.
+    
+    :param hour: The current hour (0-24)
+    :param peak_hour: The hour where the curve is highest (default 12:00)
+    :param spread: How wide the curve is (higher = wider fade)
+    :param max_height: The maximum value at the peak
+    """
+    if not hour:
+        hour = datetime.datetime.now().hour
+
+    # Gaussian Formula: a * exp(-((x - b)^2 / (2 * c^2)))
+    exponent = -((hour - peak_hour) ** 2) / (2 * (spread ** 2))
+    y = max_height * math.exp(exponent)
+    
+    return y

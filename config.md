@@ -6,7 +6,7 @@
 | window.show_fps | `false` | show_fps |
 | window.hdmi_power | `3` | mode to control hdmi_power: 2: linux/raspberry, 3: windows |
 | window.hdmi_off_timeout | `5` | hdmi_off_timeout in minutes |
-| window.lux_adjustment | `130` | adjust number to be added to the sensor value |
+| window.lux_adjustment | `50` | adjust number to be added to the sensor value |
 | window.debug_color | `(255, 255, 255, 255)` | debug_color |
 | window.error_color | `(255, 0, 0, 255)` | error_color |
 | window.fullscreen | `true` | start app in fullscreen |

@@ -1,4 +1,5 @@
 from array import array
+import random, math
 from config import Config
 from pyray import *
 
@@ -13,9 +14,10 @@ class Histogram:
         self.histogram_b = None
         self.histogram_b_max = 1
         self.scale = 10             # work on a scaled image
-        self.mat_r = 0
-        self.mat_g = 0
-        self.mat_b = 0
+        self.matte_enabled = Config.get('items.types.image.matte.enabled', True)
+        self.k_means = Config.get('items.types.image.matte.kmeans', False)
+        self.k_num = Config.get('items.types.image.matte.knum', 3)
+        self.k_col = [Color(0,0,0,255), Color(255,255,255,255), Color(128,128,128,255)]
         self.process(image)
 
     def process(self, image):
@@ -26,8 +28,11 @@ class Histogram:
         if Config.get('items.types.image.histogram.enabled', False):
             self.create_histogram(image2)
 
-        if Config.get('items.types.image.matte.enabled', True):
-            self.calc_mat_color(image2)
+        if self.matte_enabled:
+            if self.k_means:
+                self.k_col = self.get_k_means(image2, k=self.k_num)
+            else:
+                self.k_col = self.get_df_means(image2)
 
         unload_image(image2)
 
@@ -63,15 +68,10 @@ class Histogram:
 
         return (r, g, b, 255)
 
-    def calc_mat_color(self, image):
+    def get_df_means(self, image):
 
-        if Config.get('items.types.image.matte.dominant_color', False):
-            color_filter = Config.get('items.types.image.matte.dom_color_filter', [0,255, 0,255, 0,255])
-            channel_mask = Config.get('items.types.image.matte.dom_channel_mask', [0xff, 0xff, 0xff])
-        else:
-            #color_filter = Config.get('items.types.image.matte.color_filter_skin', [140,255, 0,172, 0,124]) #skin
-            color_filter = Config.get('items.types.image.matte.color_filter', [0,255, 0,255, 0,255])
-            channel_mask = Config.get('items.types.image.matte.channel_mask', [0xf0, 0xf0, 0xf0])
+        color_filter = Config.get('items.types.image.matte.color_filter', [0,255, 0,255, 0,255])
+        channel_mask = Config.get('items.types.image.matte.channel_mask', [0xf0, 0xf0, 0xf0])
 
         flr = color_filter[0]
         fhr = color_filter[1]
@@ -96,24 +96,68 @@ class Histogram:
                     else:
                         count[rgb] = 1
 
-        vmax = 0
-        for k, v in count.items():
-            if v > vmax:
-                vmax = v
-                rgb = k
+        ls = sorted(count.items(), reverse=True, key=lambda x: x[1])
+        return [self.split_rbg(ls[0][0]), self.split_rbg(ls[1][0]), self.split_rbg(ls[2][0])]
 
+    def get_k_means(self, img, k=3, iterations=5):
+        # 1. Load the image
+        image_format(img, PixelFormat.PIXELFORMAT_UNCOMPRESSED_R8G8B8A8)
+        
+        # Get the colors (pixels) as an array of Color structures
+        pixels = load_image_colors(img)
+        pixel_count = img.width * img.height
+        
+        # Initialization: Choose K random centroids from existing pixels
+        centroids = []
+        for _ in range(k):
+            p = pixels[random.randint(0, pixel_count - 1)]
+            centroids.append([float(p.r), float(p.g), float(p.b)])
+        
+        for _ in range(iterations):
+            # Lists to accumulate the colors assigned to each centroid
+            clusters = [[] for _ in range(k)]
+            
+            # Assignment: Each pixel goes to the closest centroid
+            # (To optimize, we sample 1 in 10 pixels for large images.)
+            for i in range(0, pixel_count, 1):
+                p = pixels[i]
+                best_dist = float('inf')
+                best_idx = 0
+                
+                for idx, c in enumerate(centroids):
+                    # RGB Euclidean distance
+                    dist = math.sqrt((p.r - c[0])**2 + (p.g - c[1])**2 + (p.b - c[2])**2)
+                    if dist < best_dist:
+                        best_dist = dist
+                        best_idx = idx
+                
+                clusters[best_idx].append([p.r, p.g, p.b])
+            
+            # Update: Recalculate the centroids as the average of the colors in the cluster
+            for i in range(k):
+                if not clusters[i]: continue
+                
+                avg_r = sum(p[0] for p in clusters[i]) / len(clusters[i])
+                avg_g = sum(p[1] for p in clusters[i]) / len(clusters[i])
+                avg_b = sum(p[2] for p in clusters[i]) / len(clusters[i])
+                centroids[i] = [avg_r, avg_g, avg_b]
+                
+        # Memory cleaning
+        unload_image_colors(pixels)
+        
+        # Return dominant colors as Raylib Color objects
+        return [Color(int(c[0]), int(c[1]), int(c[2]), 255) for c in centroids]
+
+    def split_rbg(self, rgb):        
         if Config.get('items.types.image.matte.complement', False):
-            self.mat_r = 255 - (rgb >> 16)
-            self.mat_g = 255 - (rgb >> 8 & 0xff)
-            self.mat_b = 255 - (rgb & 0xff)
+            return Color(255 - (rgb >> 16), 255 - (rgb >> 8 & 0xff), 255 - (rgb & 0xff), 255)
         else:
-            self.mat_r = rgb >> 16
-            self.mat_g = rgb >> 8 & 0xff
-            self.mat_b = rgb & 0xff
+            return Color(rgb >> 16, rgb >> 8 & 0xff, rgb & 0xff, 255)
 
     def get_mat_color(self):
-
-        return (self.mat_r, self.mat_g, self.mat_b, 255)
+        #i = random.randint(0, 2)
+        i = 0
+        return (self.k_col[i].r, self.k_col[i].g, self.k_col[i].b, self.k_col[i].a)
 
     def kernel_convolution(self, image, kernel_matrix=None):
         if not kernel_matrix:
@@ -134,19 +178,6 @@ class Histogram:
         # 3. Applica la convoluzione
         # Nota: la funzione modifica direttamente l'oggetto 'image'
         image_kernel_convolution(image, ffi.cast("float *", kernel), len(kernel_matrix))
-
-    def image_palette(self, image):
-        color_count_ptr = ffi.new('int *')
-        max_colors = 256
-        palette = load_image_palette(image, max_colors, color_count_ptr)
-        #color_count = color_count_ptr[0]
-        #for i in range(color_count):
-        #    color = palette[i]
-        #    print(f"Colore {i}: R={color.r}, G={color.g}, B={color.b}, A={color.a}")
-        color = palette[0]  # the most used ??
-        self.R = color.r; self.G = color.g; self.B = color.b
-        unload_image_palette(palette)
-        return color.r, color.g, color.b
 
     def get_complementary_color(color):
         return Color(
