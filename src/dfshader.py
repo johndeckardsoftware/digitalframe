@@ -39,7 +39,6 @@ class ShaderWrapper:
                     "location": location,
                     "type": self._get_raylib_type(type_name)
                 }
-                self.df.logger.info(f"[Shader] Found uniform: {var_name} ({type_name}) at loc: {location}")
             else:
                 self.df.logger.error(f"[Shader] Not found uniform: {var_name} ({type_name}) at loc: {location}")
 

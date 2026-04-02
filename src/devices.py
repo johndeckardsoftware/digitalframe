@@ -219,16 +219,16 @@ class Devices:
                 self.show3(f"brightness {self.df.brightness}")
 
         elif key == KeyboardKey.KEY_LEFT:
-            ld = self.df.shader.config_get('uDirection')
-            ld = ld + 10 if ld < 360 else 0
-            self.show3(f"light direction {ld}")
-            self.df.shader.config_set('uDirection', ld)
+            if ld := self.df.shader.config_get('uDirection'):
+                ld = ld + 10 if ld < 360 else 0
+                self.show3(f"light direction {ld}")
+                self.df.shader.config_set('uDirection', ld)
 
         elif key == KeyboardKey.KEY_RIGHT:
-            ld = self.df.shader.config_get('uDirection')
-            ld = ld - 10 if ld > 0 else 360
-            self.show3(f"light direction {ld}")
-            self.df.shader.config_set('uDirection', ld)
+            if ld := self.df.shader.config_get('uDirection'):
+                ld = ld - 10 if ld > 0 else 360
+                self.show3(f"light direction {ld}")
+                self.df.shader.config_set('uDirection', ld)
 
         elif key == KeyboardKey.KEY_B:
             i = self.cur_border

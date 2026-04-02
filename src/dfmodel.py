@@ -42,6 +42,9 @@ class DFItemModel:
         # close
         self.close = self.model_close
 
+    def skip(self):
+        self._skip = True
+
     def model_process(self):
         if self.model: unload_model(self.model)
         self.model = load_model(self.file)

@@ -41,6 +41,9 @@ class DFItemVideo:
         # close
         self.close = self.video_close
 
+    def skip(self):
+        self._skip = True
+
     def get_fit_rect(self, video_w, video_h, screen_w, screen_h):
         if video_w > screen_w:
             scale = min(screen_w / video_w, screen_h / video_h)
