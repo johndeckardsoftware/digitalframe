@@ -1,4 +1,4 @@
-import os, random, time, logging
+import os, random, time
 from config import Config, ItemType
 
 from dfimage import DFItemImage
@@ -16,15 +16,16 @@ class DFItemList:
         self.indexes = None
         self.index = 0
         self.last_index = 0
-        self.type_ext = Config.get('items.types.image.ext', ['.jpg', '.jpeg'])
-        self.type_ext = Config.get('items.types.video.ext', ['.mp4', '.mpg', ".avi"])
-        self.type_ext = Config.get('items.types.model.ext', ['.glb', '.obj', '.gltf'])
+        self.type_ext = Config.get('items.types.image.ext', ['.jpg', '.jpeg'])          # just for autocreating config file
+        self.type_ext = Config.get('items.types.video.ext', ['.mp4', '.mpg', ".avi"])   # just for autocreating config file
+        self.type_ext = Config.get('items.types.model.ext', ['.glb', '.obj', '.gltf'])  # just for autocreating config file
         self.type_ext = Config.get('items.types', {})
+        self.all_ext = self.get_all_ext()
         self.filter = Config.get('items.filter', "")
         self.filter_prev = None
         self.filter_error = None
-        self.sort = 0
-        self.shuffle = False
+        self.sort = Config.get('items.sort', False)
+        self.shuffle = Config.get('items.shuffle', False)
         self.private = False
         self.direction = 1
         self.show_text = False
@@ -47,6 +48,8 @@ class DFItemList:
             else:
                 self.df.logger.error(f"{path} not found")
 
+        if self.sort: self.folders.sort()
+
         self.df.logger.info(f"load_items: {len(self.items)=}")
 
         if len(self.items) == 0:
@@ -58,12 +61,17 @@ class DFItemList:
         for i in self.items:
             x = i.name.find('+')
             if x >= 0:
-                pair = i.name[x+1:]
-                for j in self.items:
-                    if j != i and j.name == pair:
-                        i.pair = j
-                        j.paired = True
-                        break
+                if i.type == ItemType.IMAGE:
+                    pair = i.name[x+1:]
+                    for j in self.items:
+                        if j != i and j.name == pair:
+                            i.pair = j
+                            j.paired = True
+                            break
+                elif i.type == ItemType.VIDEO:
+                    head, _ = os.path.split(i.file)
+                    i.filemp3 = os.path.join(head, i.name[0:x])
+                    i.has_sound = True
 
         # set indexes
         self.indexes = list(range(0, len(self.items)))
@@ -97,6 +105,12 @@ class DFItemList:
                                 self.df.logger.info(f"{ext} ignored")
                 else:
                     self.list_files(entry.path)
+
+    def get_all_ext(self):
+        e = {}
+        for k, v in self.type_ext.items():
+            e[k] = v.get('ext')
+        return e
 
     def count(self):
         return len(self.items)
@@ -153,14 +167,27 @@ class DFItemList:
     def get_folders(self):
         return self.folder, self.folders
 
+    def get_subfolder(self):
+        return self.subfolder
+
     def set_subfolder(self, value):
         if value in self.folders:
             self.subfolder = value
         else:
             self.subfolder = ""
 
+    def get_filter(self):
+        return self.filter
+
+    def set_filter(self, filter):
+        self.filter = filter
+
+    def get_shuffle(self):
+        return self.shuffle
+
     def set_shuffle(self, value):
         self.shuffle = value
+        Config.set('items.shuffle', value)
         if value:
             random.shuffle(self.indexes)
         else:
@@ -184,6 +211,12 @@ class DFItemList:
         else:
             self.meta_config[key]['enabled'] = False
             self.meta_show -= 1
+
+    def get_show_text(self, key):
+        return "ON" if self.text_is_on(key) else "OFF"
+
+    def not_show_text(self, key):
+        self.set_show_text(key, ("OFF" if self.text_is_on(key) else "ON"))
 
     def text_is_on(self, key):
         if key in self.meta_config:
