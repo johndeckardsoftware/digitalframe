@@ -46,6 +46,7 @@ class Devices:
 
         # map key text to key code
         self.key_map = {name: value for name, value in vars(KeyboardKey).items() if name.startswith("KEY_")}
+        self.key_kb_menu = Config.get('window.menu_key', KeyboardKey.KEY_KB_MENU)
 
         self.autosleep = 0
         self.text_pause = None
@@ -151,7 +152,7 @@ class Devices:
                 msg = df.get_debug_msg()
                 logger.info(f"{msg}, display={df.display}, pause={df.paused}")
 
-        elif key == KeyboardKey.KEY_KB_MENU:
+        elif key == self.key_kb_menu:
             if self.menu.is_active:
                 self.menu.is_active = False
                 self.df.set_paused(False)
@@ -428,7 +429,7 @@ class BoxPutRemote():
                                 # set BoxPut control mode
                                 if key_event.scancode == evdev.ecodes.KEY_COMPOSE:
                                     if self.mode == ControlMode.REMOTE:
-                                        #self.device.keyboard(KeyboardKey.KEY_KB_MENU)  #already from keyboard
+                                        #self.device.keyboard(self.key_kb_menu)  #already from keyboard
                                         pass
                                     else:
                                         df.show_remote_help = not df.show_remote_help

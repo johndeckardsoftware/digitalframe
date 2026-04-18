@@ -66,8 +66,14 @@ Simple digital frame application developed in Python using [raylib](https://elec
    ```bash
    python ./src/df.py
    ```
+   or for fullscreen
+   ```
+   python ./src/df.py --fullscreen
+   ```
+
 5. **First Run:**  
-   On the initial launch, if configuration file is not found, the program will prompt you to enter the path for your media folder and will create a default configuration file.
+   * On the initial launch, if configuration file is not found, the program will prompt you to enter the path for your media folder and will create a default configuration file.
+   * Key ESC to exit and Key F1 for others shortcuts
 
 ## **⚙️ Media file updates**
 

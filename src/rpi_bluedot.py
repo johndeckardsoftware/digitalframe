@@ -31,7 +31,7 @@ class BlueDotRemote():
         self.devices.keyboard(vkey=KeyboardKey.KEY_ENTER)
 
     def btn_menu(self):
-        self.devices.keyboard(vkey=KeyboardKey.KEY_KB_MENU)
+        self.devices.keyboard(vkey=Config.get('window.menu_key', KeyboardKey.KEY_KB_MENU))
 
     def btn_end(self):
         self.devices.keyboard(vkey=KeyboardKey.KEY_END)

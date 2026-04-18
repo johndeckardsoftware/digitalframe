@@ -27,6 +27,7 @@
 | window.col_width | `16` | col_width |
 | window.menu.scale | `1.6` | scale |
 | window.menu.osk_layout | `osk_en_layout.json` | osk_layout |
+| window.menu_key | `348` | set to 342 for left alt key |
 | window.light_average.12 | `150` | dictionary for light_average by month |
 | window.light_average.1 | `150` | 1 |
 | window.light_average.2 | `200` | 2 |

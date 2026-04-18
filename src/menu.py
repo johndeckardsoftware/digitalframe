@@ -68,7 +68,7 @@ class OnScreenMenu:
 
     def update(self, key):
         #logger.debug(f"{key=}")
-        if key == KeyboardKey.KEY_KB_MENU:
+        if key == self.devices.key_kb_menu:
             if self.is_active:
                 self.is_active = False
                 self.df.set_paused(False)
