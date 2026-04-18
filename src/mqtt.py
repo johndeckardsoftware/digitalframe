@@ -114,6 +114,8 @@ class MQTT:
             return
         self.logger.info("Connected with MQTT broker")
         self.connected = True
+        
+        df = self.df
 
         #client.subscribe(f"{self.device_id}/#")
         client.subscribe(f"homeassistant/switch/{self.device_id}/#")
@@ -136,24 +138,24 @@ class MQTT:
         self.setup_number(client, "autosleep", 0.0, 3600.0, 1, "mdi:power-sleep", available_topic)
 
         # selects
-        _, dir_list = self.df.items.get_folders()
-        dir_list.sort()
+        _, dir_list = df.items.get_folders()
+        #dir_list.sort()
         self.setup_select(client, "directory", dir_list, "mdi:folder-multiple-image", available_topic, init=True)
         command_topic = self.device_id + "/directory"
         client.subscribe(command_topic, qos=0)
 
         # switches
-        self.setup_switch(client, "name_toggle", "mdi:subtitles", available_topic, self.df.items.text_is_on("name"), entity_category="config")
-        self.setup_switch(client, "title_toggle", "mdi:subtitles", available_topic, self.df.items.text_is_on("title"), entity_category="config")
-        self.setup_switch(client, "caption_toggle", "mdi:subtitles", available_topic, self.df.items.text_is_on("caption"), entity_category="config")
-        self.setup_switch(client, "date_toggle", "mdi:calendar-today", available_topic,  self.df.items.text_is_on("date"), entity_category="config")
-        self.setup_switch(client, "location_toggle", "mdi:crosshairs-gps", available_topic, self.df.items.text_is_on("location"), entity_category="config")
-        self.setup_switch(client, "directory_toggle", "mdi:folder", available_topic, self.df.items.text_is_on("directory"), entity_category="config")
+        self.setup_switch(client, "name_toggle", "mdi:subtitles", available_topic, df.items.text_is_on("name"), entity_category="config")
+        self.setup_switch(client, "title_toggle", "mdi:subtitles", available_topic, df.items.text_is_on("title"), entity_category="config")
+        self.setup_switch(client, "caption_toggle", "mdi:subtitles", available_topic, df.items.text_is_on("caption"), entity_category="config")
+        self.setup_switch(client, "date_toggle", "mdi:calendar-today", available_topic,  df.items.text_is_on("date"), entity_category="config")
+        self.setup_switch(client, "location_toggle", "mdi:crosshairs-gps", available_topic, df.items.text_is_on("location"), entity_category="config")
+        self.setup_switch(client, "directory_toggle", "mdi:folder", available_topic, df.items.text_is_on("directory"), entity_category="config")
         self.setup_switch(client, "text_off", "mdi:badge-account-horizontal-outline", available_topic, entity_category="config")
-        self.setup_switch(client, "display", "mdi:panorama", available_topic, self.df.display_on())
-        self.setup_switch(client, "clock", "mdi:clock-outline", available_topic, self.df.timer, entity_category="config")
-        self.setup_switch(client, "shuffle", "mdi:shuffle-variant", available_topic, self.df.items.shuffle)
-        self.setup_switch(client, "paused", "mdi:pause", available_topic, self.df.paused)
+        self.setup_switch(client, "display", "mdi:panorama", available_topic, df.display_on())
+        self.setup_switch(client, "clock", "mdi:clock-outline", available_topic, df.timer, entity_category="config")
+        self.setup_switch(client, "shuffle", "mdi:shuffle-variant", available_topic, df.items.shuffle)
+        self.setup_switch(client, "paused", "mdi:pause", available_topic, df.paused)
 
         # buttons
         self.setup_button(client, "back", "mdi:skip-previous", available_topic)
@@ -450,6 +452,7 @@ class MQTT:
         Raises:
             None
         """
+        df = self.df
         msg = message.payload.decode("utf-8")
         switch_topic_head = "homeassistant/switch/" + self.device_id
         button_topic_head = "homeassistant/button/" + self.device_id
@@ -461,89 +464,89 @@ class MQTT:
         if message.topic == switch_topic_head + "_display/set":
             state_topic = switch_topic_head + "_display/state"
             if msg == "ON":
-                self.df.display_set_on()
+                df.display_set_on()
                 client.publish(state_topic, "ON", retain=True)
             elif msg == "OFF":
-                self.df.display_set_off()
+                df.display_set_off()
                 client.publish(state_topic, "OFF", retain=True)
         # clock
         elif message.topic == switch_topic_head + "_clock/set":
             state_topic = switch_topic_head + "_clock/state"
             if msg == "ON":
-                self.df.timer = True
+                df.timer = True
                 client.publish(state_topic, "ON", retain=True)
             elif msg == "OFF":
-                self.df.timer = False
+                df.timer = False
                 client.publish(state_topic, "OFF", retain=True)
         # shuffle
         elif message.topic == switch_topic_head + "_shuffle/set":
             state_topic = switch_topic_head + "_shuffle/state"
             if msg == "ON":
-                self.df.items.set_shuffle(True)
+                df.items.set_shuffle(True)
                 client.publish(state_topic, "ON", retain=True)
             elif msg == "OFF":
-                self.df.items.set_shuffle(False)
+                df.items.set_shuffle(False)
                 client.publish(state_topic, "OFF", retain=True)
         # paused
         elif message.topic == switch_topic_head + "_paused/set":
             state_topic = switch_topic_head + "_paused/state"
             if msg == "ON":
-                self.df.set_paused(True)
+                df.set_paused(True)
                 client.publish(state_topic, "ON", retain=True)
             elif msg == "OFF":
-                self.df.set_paused(False)
+                df.set_paused(False)
                 client.publish(state_topic, "OFF", retain=True)
         # back buttons
         elif message.topic == button_topic_head + "_back/set":
             if msg == "ON":
-                self.df.items.set_prev()
-                if self.df.item: self.df.item.skip()
+                df.items.set_prev()
+                if df.item: df.item.skip()
         # next buttons
         elif message.topic == button_topic_head + "_next/set":
             if msg == "ON":
-                self.df.items.set_next()
-                if self.df.item: self.df.item.skip()
+                df.items.set_next()
+                if df.item: df.item.skip()
         # title on
         elif message.topic == switch_topic_head + "_title_toggle/set":
             state_topic = switch_topic_head + "_title_toggle/state"
             if msg in ("ON", "OFF"):
-                self.df.items.set_show_text("title", msg)
+                df.items.set_show_text("title", msg)
                 client.publish(state_topic, msg, retain=True)
         # caption on
         elif message.topic == switch_topic_head + "_caption_toggle/set":
             state_topic = switch_topic_head + "_caption_toggle/state"
             if msg in ("ON", "OFF"):
-                self.df.items.set_show_text("caption", msg)
+                df.items.set_show_text("caption", msg)
                 client.publish(state_topic, msg, retain=True)
         # name on
         elif message.topic == switch_topic_head + "_name_toggle/set":
             state_topic = switch_topic_head + "_name_toggle/state"
             if msg in ("ON", "OFF"):
-                self.df.items.set_show_text("name", msg)
+                df.items.set_show_text("name", msg)
                 client.publish(state_topic, msg, retain=True)
         # date_on
         elif message.topic == switch_topic_head + "_date_toggle/set":
             state_topic = switch_topic_head + "_date_toggle/state"
             if msg in ("ON", "OFF"):
-                self.df.items.set_show_text("date", msg)
+                df.items.set_show_text("date", msg)
                 client.publish(state_topic, msg, retain=True)
         # location_on
         elif message.topic == switch_topic_head + "_location_toggle/set":
             state_topic = switch_topic_head + "_location_toggle/state"
             if msg in ("ON", "OFF"):
-                self.df.items.set_show_text("location", msg)
+                df.items.set_show_text("location", msg)
                 client.publish(state_topic, msg, retain=True)
         # directory_on
         elif message.topic == switch_topic_head + "_directory_toggle/set":
             state_topic = switch_topic_head + "_directory_toggle/state"
             if msg in ("ON", "OFF"):
-                self.df.items.set_show_text("directory", msg)
+                df.items.set_show_text("directory", msg)
                 client.publish(state_topic, msg, retain=True)
         # text_off
         elif message.topic == switch_topic_head + "_text_off/set":
             state_topic = switch_topic_head + "_text_off/state"
             if msg == "ON":
-                self.df.items.show_text = False
+                df.items.show_text = False
                 client.publish(state_topic, "OFF", retain=True)
                 state_topic = switch_topic_head + "_directory_toggle/state"
                 client.publish(state_topic, "OFF", retain=True)
@@ -562,53 +565,54 @@ class MQTT:
         # change subdirectory
         elif message.topic == self.device_id + "/directory":
             self.logger.debug("Received subdirectory: %s", msg)
-            self.df.items.set_subfolder(msg)
+            df.items.set_subfolder(msg)
         # time_delay
         elif message.topic == self.device_id + "/time_delay":
             self.logger.debug("Received time_delay: %s", msg)
-            self.df.image_ttl = myfloat(msg)
+            df.image_ttl = myfloat(msg)
         # brightness (lux)
         elif message.topic == self.device_id + "/brightness":
             self.logger.debug("Received brightness: %s", msg)
-            self.df.set_brightness(myfloat(msg))
+            df.set_brightness(myfloat(msg))
         # location filter
         elif message.topic == self.device_id + "/location_filter":
             self.logger.debug("Received location filter: %s", msg)
-            self.df.location_filter = msg
+            df.location_filter = msg
         # tags filter
         elif message.topic == self.device_id + "/tags_filter":
             self.logger.debug("Received tags filter: %s", msg)
-            self.df.set_tags_filter(msg)
+            df.set_tags_filter(msg)
         # set the flag to view extra files
         elif message.topic == self.device_id + "/extra":
             self.logger.debug("Received extra: %s", msg)
-            self.df.items.private = True if (msg.lower() in ["on", "true", "1"]) else False
+            df.items.private = True if (msg.lower() in ["on", "true", "1"]) else False
         # motion
         elif message.topic == self.device_id + "/motion":
             self.logger.debug("Received motion: %s", msg)
-            self.df.set_motion(myfloat(msg))
+            df.set_motion(myfloat(msg))
         # autosleep
         elif message.topic == self.device_id + "/autosleep":
             self.logger.debug("Received autosleep: %s", msg)
-            self.df.hdmi_off_timeout = myfloat(msg)
+            df.hdmi_off_timeout = myfloat(msg)
         # stop loops and end program
         elif message.topic == self.device_id + "/stop":
             self.logger.info("Received stop")
-            self.df.close()
+            df.close()
         # reboot
         elif message.topic == self.device_id + "/reboot":
             self.logger.info("Received reboot")
-            self.df.reboot()
+            df.reboot()
         # power down
         elif message.topic == self.device_id + "/power_down":
             self.logger.info("Received power down")
-            self.df.power_down()
+            df.power_down()
         # virtual keyboard
         elif message.topic == self.device_id + "/keyboard":
             self.logger.info(f"Received keyboard: {msg}")
-            self.df.devices.vkeyboard(msg)
+            df.devices.send_keys(msg)
 
     def publish_state(self, image=None, image_attr=None):
+        df = self.df
         try:
             if self.client is None:
                 self.logger.warning("Cannot publish state. MQTT client is not initialized.")
@@ -645,28 +649,28 @@ class MQTT:
 
             # sensor
             # directory sensor
-            actual_dir, dir_list = self.df.items.get_folders()
+            actual_dir, dir_list = df.items.get_folders()
             sensor_state_payload["directory"] = actual_dir
             # image counter sensor
-            sensor_state_payload["image_counter"] = str(self.df.items.count())
+            sensor_state_payload["image_counter"] = str(df.items.count())
             # location_filter
-            sensor_state_payload["location_filter"] = self.df.location_filter
+            sensor_state_payload["location_filter"] = df.location_filter
             # tags_filter
-            sensor_state_payload["tags_filter"] = self.df.tags_filter
+            sensor_state_payload["tags_filter"] = df.tags_filter
             # number state
             # time_delay
-            sensor_state_payload["time_delay"] = self.df.image_ttl
+            sensor_state_payload["time_delay"] = df.image_ttl
             # motion
-            sensor_state_payload["motion"] = self.df.get_motion()
+            sensor_state_payload["motion"] = df.get_motion()
             # brightness
-            sensor_state_payload["brightness"] = self.df.get_brightness()
+            sensor_state_payload["brightness"] = df.get_brightness()
             # temperature
             sensor_state_payload["temperature"] = get_cpu_temp()
             # autosleep
-            sensor_state_payload["autosleep"] = self.df.hdmi_off_timeout
+            sensor_state_payload["autosleep"] = df.hdmi_off_timeout
 
             # update directory list
-            dir_list.sort()
+            #dir_list.sort()
             self.setup_select(self.client, "directory", dir_list, "mdi:folder-multiple-image", available_topic, init=False)
 
             # publish sensors
@@ -677,15 +681,15 @@ class MQTT:
             # publish state of switches
             # pause
             state_topic = switch_topic_head + "_paused/state"
-            payload = "ON" if self.df.get_paused() else "OFF"
+            payload = "ON" if df.get_paused() else "OFF"
             self.client.publish(state_topic, payload, retain=True)
             # shuffle
             state_topic = switch_topic_head + "_shuffle/state"
-            payload = "ON" if self.df.items.shuffle else "OFF"
+            payload = "ON" if df.items.shuffle else "OFF"
             self.client.publish(state_topic, payload, retain=True)
             # display
             state_topic = switch_topic_head + "_display/state"
-            payload = "ON" if self.df.display_on() else "OFF"
+            payload = "ON" if df.display_on() else "OFF"
             self.client.publish(state_topic, payload, retain=True)
 
             # send last will and testament

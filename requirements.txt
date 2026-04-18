@@ -1,5 +1,4 @@
 raylib
-pyray
 watchdog
 psutil
 paho-mqtt
@@ -7,3 +6,5 @@ exifread
 bluedot
 evdev
 opencv-python
+pygltflib
+schedule

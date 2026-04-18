@@ -1,0 +1,59 @@
+{
+    "menu": [
+        {"t": "Keyboard shortcut", "k": "KEY_F1"},
+        {"t": "Remote help", "k": "KEY_F2"},
+        {"t": "Pause", "k": "KEY_F3"},
+        {"t": "Previous", "k": "KEY_F4"},
+        {"t": "Next", "k": "KEY_F5"},
+        {"t": "Sleep", "k": "KEY_F7"},
+        {"t": "Wakeup", "k": "KEY_F8"},
+        {"g": "f'Change Folder ({self.df.items.get_subfolder()})'", "k": null, "m": "folders"},
+        {"g": "f'Toogle Ambient Light ({self.on_off(self.df.ambient_light)})'", "k": "KEY_L"},
+        {"t": "Setup Light", "k": null, "m": "light"},
+        {"g": "f'Border selection ({Config.get(\"items.types.image.border.file\", None)})'", "k": null, "m": "borders"},
+        {"g": "f'Matte selection ({Config.get(\"items.types.image.matte.texture\", None)})'", "k": null, "m": "mattes"},
+        {"e": "f'Image showtime < {self.df.image_ttl} > sec.'", "fl": "self.devices.set_ttl(-10)", "fr": "self.devices.set_ttl(10)"},
+        {"e": "f'Autosleep time < {self.df.hdmi_off_timeout} > min.'", "fl": "self.devices.set_sleep(-5)", "fr": "self.devices.set_sleep(5)"},
+        {"g": "f'Toogle shuffle ({self.on_off(self.df.items.get_shuffle())})'", "k": "KEY_S"},
+        {"t": "Item info (exif)", "k": null, "m": "meta"},
+        {"t": "Toogle Clock", "k": "KEY_C"},
+        {"t": "More Tools", "k": null, "m": "debug" }
+    ],
+    "menu_sel": 0,
+    "light": [
+        {"e": "f'Set Lux adjustment < {self.df.lux_adj} >'", "fl": "self.df.set_lux_adj(-self.devices.inc_value)", "fr": "self.df.set_lux_adj(self.devices.inc_value)"},
+        {"e": "f'Set Lightness < {self.df.get_brightness()} > (for Ambient Light off)'",  "fl": "self.devices.set_lux(-1)", "fr": "self.devices.set_lux(1)"},
+        {"e": "f'Set light direction angle < {self.df.shader.config_get('uDirection')} > (only for \"light_gradient\" shader)'",
+         "fl": "self.devices.set_direction(-1)", "fr": "self.devices.set_direction(1)"},
+        {"e": "f'Set Monitor brightness < {ddcutil.get_vcp_value(ddcutil.BRIGHTNESS)} >'",
+         "fl": "self.devices.set_monitor_brightness(-1)", "fr": "self.devices.set_monitor_brightness(1)"},
+        {"e": "f'Set Monitor contrast < {ddcutil.get_vcp_value(ddcutil.CONTRAST)} >'",
+         "fl": "self.devices.set_monitor_contrast(-1)", "fr": "self.devices.set_monitor_contrast(1)"},
+        {"e": "f'Set increment step < {self.devices.inc_value} >'", "fl": "self.devices.set_increment(-1)", "fr": "self.devices.set_increment(1)"},
+        {"t": "Back", "back": true, "m": "menu"}
+    ],
+    "light_sel": 0,
+    "meta": [
+        {"g": "f'Toogle Title ({self.df.items.get_show_text(\"title\")})'", "k": "KEY_ONE"},
+        {"g": "f'Toogle Caption ({self.df.items.get_show_text(\"caption\")})'", "k": "KEY_TWO"},
+        {"g": "f'Toogle Name ({self.df.items.get_show_text(\"name\")})'", "k": "KEY_THREE"},
+        {"g": "f'Toogle Date ({self.df.items.get_show_text(\"date\")})'", "k": "KEY_FOUR"},
+        {"g": "f'Toogle Location ({self.df.items.get_show_text(\"location\")})'", "k": "KEY_FIVE"},
+        {"g": "f'Toogle Folder ({self.df.items.get_show_text(\"directory\")})'", "k": "KEY_SIX"},
+        {"t": "Set off all item info", "k": "KEY_ZERO"},
+        {"t": "Back", "back": true, "m": "menu"}
+    ],
+    "meta_sel": 0,
+    "debug": [
+        {"t": "Toogle Show debug", "k": "CTRL+KEY_D"},
+        {"t": "Show filter", "k": "CTRL+KEY_Q"},
+        {"g": "f'Set filter ({self.df.items.get_filter()})'", "vk": true, "d": "f'{self.df.items.get_filter()}'", "f": "self.df.set_tags_filter(self.osk.typed_text)"},
+        {"t": "Show system metrics", "k": "CTRL+KEY_M"},
+        {"t": "Show fps", "k": "CTRL+KEY_F"},
+        {"t": "Toogle Fullscreen", "k": "KEY_F11"},
+        {"t": "Private", "k": "KEY_F6"},
+        {"t": "Close digitalframe", "k": "CTRL+KEY_E"},
+        {"t": "Back", "back": true, "m": "menu"}
+    ],
+    "debug_sel": 0
+}

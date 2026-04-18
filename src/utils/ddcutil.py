@@ -1260,55 +1260,80 @@ VCP code DF: VCP Version
 
 =========================================================================
 
-VCP code 0x02 (New control value             ): No new control values (0x01)
-VCP code 0x0b (Color temperature increment   ): 100 degree(s) Kelvin
-VCP code 0x0c (Color temperature request     ): 3000 + 35 * (feature 0B color temp increment) degree(s) Kelvin
-VCP code 0x10 (Brightness                    ): current value =    50, max value =   100
-VCP code 0x12 (Contrast                      ): current value =    60, max value =   100
-VCP code 0x14 (Select color preset           ): 6500 K (sl=0x05)
-VCP code 0x16 (Video gain: Red               ): current value =    50, max value =   100
-VCP code 0x18 (Video gain: Green             ): current value =    50, max value =   100
-VCP code 0x1a (Video gain: Blue              ): current value =    50, max value =   100
-VCP code 0x1e (Auto setup                    ): Auto setup not active (sl=0x00)
-VCP code 0x52 (Active control                ): Value: 0x00
-VCP code 0x59 (6 axis saturation: Red        ): current value =    50, max value =   100
-VCP code 0x5a (6 axis saturation: Yellow     ): current value =    50, max value =   100
-VCP code 0x5b (6 axis saturation: Green      ): current value =    50, max value =   100
-VCP code 0x5c (6 axis saturation: Cyan       ): current value =    50, max value =   100
-VCP code 0x5d (6 axis saturation: Blue       ): current value =    50, max value =   100
-VCP code 0x5e (6 axis saturation: Magenta    ): current value =    50, max value =   100
-VCP code 0x60 (Input Source                  ): HDMI-1 (sl=0x11)
-VCP code 0x62 (Audio speaker volume          ): current value =    50, max value =   100
-VCP code 0x6c (Video black level: Red        ): current value =    50, max value =   100
-VCP code 0x6e (Video black level: Green      ): current value =    50, max value =   100
-VCP code 0x70 (Video black level: Blue       ): current value =    50, max value =   100
-VCP code 0x72 (Gamma                         ): 0x0078 - Invalid sl value. sl=0x78, sh=0x00
-VCP code 0x7e (Trapezoid                     ): Maximum retries exceeded
-VCP code 0x87 (Sharpness                     ): Filter function 2 (sl=0x02)
-VCP code 0x8d (Audio Mute                    ): Unmute the audio (sl=0x02)
-VCP code 0x9b (6 axis hue control: Red       ): current value =    50, max value =   100
-VCP code 0x9c (6 axis hue control: Yellow    ): current value =    50, max value =   100
-VCP code 0x9d (6 axis hue control: Green     ): current value =    50, max value =   100
-VCP code 0x9e (6 axis hue control: Cyan      ): current value =    50, max value =   100
-VCP code 0x9f (6 axis hue control: Blue      ): current value =    50, max value =   100
-VCP code 0xa0 (6 axis hue control: Magenta   ): current value =    50, max value =   100
-VCP code 0xac (Horizontal frequency          ): 1984 hz
-VCP code 0xae (Vertical frequency            ): 60.10 hz
-VCP code 0xb2 (Flat panel sub-pixel layout   ): Red/Green/Blue vertical stripe (sl=0x01)
-VCP code 0xb6 (Display technology type       ): LCD (active matrix) (sl=0x03)
-VCP code 0xc6 (Application enable key        ): 0x005a
-VCP code 0xc8 (Display controller type       ): Mfg: RealTek (sl=0x09), controller number: mh=0x00, ml=0x00, sh=0x00
-VCP code 0xc9 (Display firmware level        ): 0.1
-VCP code 0xca (OSD                           ): OSD Disabled (sl=0x01)
-VCP code 0xcc (OSD Language                  ): English (sl=0x02)
-VCP code 0xd6 (Power mode                    ): DPM: On,  DPMS: Off (sl=0x01)
-VCP code 0xdf (VCP Version                   ): 2.2
+Model: RTK
+MCCS version: 2.2
+Commands:
+   Op Code: 01 (VCP Request)
+   Op Code: 02 (VCP Response)
+   Op Code: 03 (VCP Set)
+   Op Code: 07 (Timing Request)
+   Op Code: 0C (Save Settings)
+   Op Code: E3 (Capabilities Reply)
+   Op Code: F3 (Capabilities Request)
+VCP Features:
+   Feature: 02 (New control value)
+   Feature: 04 (Restore factory defaults)
+   Feature: 05 (Restore factory brightness/contrast defaults)
+   Feature: 06 (Restore factory geometry defaults)
+   Feature: 08 (Restore color defaults)
+   Feature: 0B (Color temperature increment)
+   Feature: 0C (Color temperature request)
+   Feature: 10 (Brightness)
+   Feature: 12 (Contrast)
+   Feature: 14 (Select color preset)
+      Values:
+         05: 6500 K
+         06: 7500 K
+         08: 9300 K
+         0b: User 1
+   Feature: 16 (Video gain: Red)
+   Feature: 18 (Video gain: Green)
+   Feature: 1A (Video gain: Blue)
+   Feature: 52 (Active control)
+   Feature: 60 (Input Source)
+      Values:
+         0f: DisplayPort-1
+         10: DisplayPort-2
+         11: HDMI-1
+         12: HDMI-2
+   Feature: 62 (Audio speaker volume)
+   Feature: 8D (Audio mute/Screen blank)
+   Feature: AC (Horizontal frequency)
+   Feature: AE (Vertical frequency)
+   Feature: CA (OSD/Button Control)
+   Feature: CC (OSD Language)
+      Values:
+         01: Chinese (traditional, Hantai)
+         02: English
+         03: French
+         04: German
+         05: Italian
+         06: Japanese
+         07: Korean
+         08: Portuguese (Portugal)
+         09: Russian
+         0a: Spanish
+         0c: Turkish
+         0d: Chinese (simplified / Kantai)
+         0e: Portuguese (Brazil)
+         14: Dutch
+         16: Finnish
+         1e: Polish
+   Feature: D6 (Power mode)
+      Values:
+         01: DPM: On,  DPMS: Off
+         04: DPM: Off, DPMS: Off
+         05: Write only value to turn off display
+   Feature: DF (VCP Version)
+   Feature: FD (Manufacturer specific feature)
+   Feature: FF (Manufacturer specific feature)
 """
 
 import logging
 import subprocess
 
 BRIGHTNESS = "10"
+CONTRAST   = "12"
 
 logger = logging.getLogger(__name__)
 

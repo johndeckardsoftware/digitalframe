@@ -1,15 +1,15 @@
-import sys, os, time, datetime, logging, platform, math
+import sys, os, time, datetime, logging, platform, json
 import argparse
 import traceback
 # https://electronstudio.github.io/raylib-python-cffi/README.html
 from pyray import *
 # https://www.raylib.com/cheatsheet/cheatsheet.html
-#from raylib import *
 import clock
 from config import Config, ItemType
 from utils.folderwatch import FolderWatch
 from utils.display import hdmi_set_on, hdmi_set_off, hdmi_is_connected
 from utils.lux2brightness import convert_lux_to_range, get_gauss_hour
+from utils.raspberry import set_autohide_and_notification
 from dfshader import create_shader
 from dfitems import DFItemList
 from dftext import DrawTextTTLList, dftext, update_dftext_vars
@@ -45,10 +45,6 @@ class DigitalFrame:
         # items list
         self.error = None
         self.items = DFItemList(self, Config.get('items.path', ['/path/to/items']))
-        # peripherals
-        self.devices = Devices(self)
-        self.mqtt = None
-        self._publish_state = None
         # MyHome / Home Assistant control
         self.hdmi_power = Config.get('window.hdmi_power', 2) # 3 for windows
         self.hdmi_is_connected = hdmi_is_connected(self)
@@ -79,9 +75,20 @@ class DigitalFrame:
         # actual item
         self.item = None
         # config vars
-        self.debug_color = Config.get('window.debug_color', (255,255,255,255))
+        self.debug_color = Config.get('window.debug_color', (255, 255, 255, 255))
         self.debug_fontsize = -24 if self.fullscreen else -12
-        self.error_color = Config.get('window.error_color', (255,0,0,255))
+        self.error_color = Config.get('window.error_color', (255, 0, 0, 255))
+        # overlay
+        self.show_overlay = False
+        self.overlay = None # texture handle
+        self.overlay_file = None
+        self.overlay_tint = Config.get('window.overlay_color', (255, 255, 255, 192))
+        # peripherals
+        self.devices = Devices(self)
+        self.mqtt = None
+        self._publish_state = None
+        # sound
+        self.sound_enabled = Config.get('items.types.video.sound', False)
         # work handles
         self.texture = None
         self.matte = None
@@ -127,7 +134,8 @@ class DigitalFrame:
             if self.item:
                 self.publish_state(image=self.item.name)
             else:
-                self.error = f"No item to process.\nFolder: \"{self.items.subfolder}\"\nFilter: \"{self.items.filter}\"\nError: {self.items.filter_error}"
+                #self.error = f"No items to process.\nFolder: '{self.items.subfolder}'\nExtensions: {self.items.all_ext}\nFilter: '{self.items.filter}'\nError: {self.items.filter_error}"
+                self.error = f"No items to process.\nFolder: '{self.items.subfolder}'\nFilter: \"{self.items.filter}\"\nError: {self.items.filter_error}"
                 return
 
         self.item.update()
@@ -138,8 +146,6 @@ class DigitalFrame:
         set_trace_log_level(TraceLogLevel.LOG_WARNING)  #raylib
         #set_trace_log_level(TraceLogLevel.LOG_DEBUG)  #raylib
 
-        self.mqtt_init()
-
         FolderWatch(self.items)
 
         if self.fullscreen: set_window_state(ConfigFlags.FLAG_WINDOW_UNDECORATED|ConfigFlags.FLAG_WINDOW_TOPMOST)
@@ -147,7 +153,6 @@ class DigitalFrame:
         init_window(self.width, self.height, "DigitalFrame v1.0")
         if self.fullscreen: disable_cursor()
         self.monitor = get_current_monitor()
-
         if self.fullscreen:
             self.width = get_monitor_width(self.monitor)
             Config.set('window.max_width', self.width)
@@ -158,11 +163,13 @@ class DigitalFrame:
         set_window_icon(icon)
         unload_image(icon)
 
-        # Load font
         self.font = load_font(os.path.join(Config.RESOURCES, Config.get('window.font', "LiberationMono-Regular.ttf")))
 
-        # Load shader
         self.shader = create_shader(self)
+
+        if self.sound_enabled: init_audio_device()
+
+        self.mqtt_init()
 
         set_target_fps(clock.fps)
         while not window_should_close() and self.keep_looping:
@@ -201,7 +208,13 @@ class DigitalFrame:
                 draw_fps(10, 10)
 
             if self.show_remote_help:
-                self.remote_help()
+                self.draw_remote_help()
+
+            if self.show_overlay:
+                self.draw_overlay()
+
+            if self.devices.menu.is_active:
+                self.devices.menu.draw()
 
             if self.error:
                 clear_background(BLACK)
@@ -240,12 +253,13 @@ class DigitalFrame:
             self.motion = value
             if value > 0:
                 self.hdmi_switch_off_time = time.time() + (self.hdmi_off_timeout * 60)
-            self.publish_state()
+            #self.publish_state()
 
     def get_paused(self):
         return self.paused
 
     def set_paused(self, value):
+        if self.item: self.item.set_paused(value)
         p = self.paused
         self.paused = value
         if value != p: self.publish_state()
@@ -253,7 +267,7 @@ class DigitalFrame:
     def get_brightness(self):
         return self.brightness
 
-    def get_brightness_normalized(self):
+    def get_brightness_normalized(self): # for the shader
         if self.ambient_light:
             return self.brightness_normalized
         else:
@@ -277,7 +291,7 @@ class DigitalFrame:
     def set_tags_filter(self, value):
         if value == "*": value = ""
         self.tags_filter = value
-        self.items.filter = value
+        self.items.set_filter(value)
         self.logger.info(f"filter: {value}")
 
     def display_on(self):
@@ -289,8 +303,7 @@ class DigitalFrame:
     def display_set_on(self):
         self.display = True
         hdmi_set_on(self)
-        if self.platform != "windows":
-            time.sleep(30)
+        if self.platform != "windows": time.sleep(5)
         set_window_focused()
         self.set_paused(False)
 
@@ -306,9 +319,11 @@ class DigitalFrame:
         if time.time() > self.hdmi_switch_off_time:
             if self.display_on():
                 self.display_set_off()
+                self.publish_state()
         else:
             if self.display_off():
                 self.display_set_on()
+                self.publish_state()
 
     def get_debug_msg(self):
         msg = f"screen={self.width}x{self.height}, ratio={self.ratio}, folder={self.items.folder}, \
@@ -317,7 +332,7 @@ brightness={self.brightness}, lux={self.lux}, adj={self.lux_adj}, shader={self.s
 motion={self.motion}, {self.debug}"
         return msg
 
-    def remote_help(self):
+    def draw_remote_help(self):
         if not self.help:
             help = load_image(os.path.join(Config.RESOURCES, Config.get('boxput.help', "boxput.png")))
             if help.height > self.height:
@@ -330,6 +345,35 @@ motion={self.motion}, {self.debug}"
             unload_image(help)
 
         draw_texture(self.help, (self.width - self.help.width) // 2, (self.height - self.help.height) // 2, (255, 255, 255, 255))
+
+    def draw_overlay(self):
+        if not self.overlay:
+            over = load_image(self.overlay_file)
+            self.resize_to_percentage(over, self.width, self.height, 80)
+            if self.overlay: unload_texture(self.overlay)
+            self.overlay = load_texture_from_image(over)
+            unload_image(over)
+
+        draw_texture(self.overlay, (self.width - self.overlay.width) // 2, (self.height - self.overlay.height) // 2, self.overlay_tint)
+
+    def resize_to_percentage(self, image, screen_width, screen_height, percentage):
+        orig_w = image.width
+        orig_h = image.height
+
+        # Calculate target constraints
+        target_w = screen_width * (percentage / 100)
+        target_h = screen_height * (percentage / 100)
+
+        # Determine the scaling factor (the "limiting" side)
+        # This formula ensures the image stays within bounds while keeping ratio
+        ratio = min(target_w / orig_w, target_h / orig_h)
+
+        # Calculate new dimensions
+        new_w = int(orig_w * ratio)
+        new_h = int(orig_h * ratio)
+
+        # Resize and return
+        image_resize(image, new_w, new_h)
 
     def stop(self):
         try:
@@ -344,6 +388,7 @@ motion={self.motion}, {self.debug}"
             pos = get_window_position()
             Config.set('window.x', int(pos.x))
             Config.set('window.y', int(pos.y))
+            if self.sound_enabled: close_audio_device()
             close_window()
             if self.devices:
                 self.devices.stop()
@@ -389,8 +434,11 @@ def main(args):
 
             log_level = Config.get("window.log_level", logging.INFO)
             logger.setLevel(log_level)
+            if Config.get("window.hide_taskbar", True): set_autohide_and_notification(True)
             df = DigitalFrame(fullscreen=args.fullscreen)
-            return df.main_loop()
+            ret = df.main_loop()
+            if Config.get("window.hide_taskbar", True): set_autohide_and_notification(False)
+            return ret
         else:
             return 128
     except Exception as e:

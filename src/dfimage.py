@@ -52,6 +52,9 @@ class DFItemImage:
     def skip(self):
         self._skip = True
 
+    def set_paused(self, value):
+        pass
+
     def set_ttl(self, value):
         self.ttl = value
 
@@ -75,46 +78,48 @@ class DFItemImage:
         return border, self.border_width, self.border_height, self.border_thick
 
     def set_matte(self):
+        df = self.df
         self.texture_name = Config.get('items.types.image.matte.texture', "mat_texture2i.jpg")
         self.texture_file = os.path.join(Config.RESOURCES, self.texture_name)
         matte_type = Config.get('items.types.image.matte.type', 0)
         if matte_type == 0:         # color from image
-            matte = gen_image_color(self.df.width, self.df.height, self.matte_rgb)
+            matte = gen_image_color(df.width, df.height, self.matte_rgb)
         elif matte_type == 1:         # fixed color
             color = Config.get('items.types.image.matte.color', (200, 200, 200, 255))
-            matte = gen_image_color(self.df.width, self.df.height, color)
+            matte = gen_image_color(df.width, df.height, color)
         elif matte_type == 2:         # perlin noise
             offset_x  = Config.get('items.types.image.matte.offset_x', 0)
             offset_y = Config.get('items.types.image.matte.offset_y', 0)
             scale     = Config.get('items.types.image.matte.scale', 0.5)
-            matte = gen_image_perlin_noise(self.df.width, self.df.height, offset_x, offset_y, scale)
+            matte = gen_image_perlin_noise(df.width, df.height, offset_x, offset_y, scale)
             image_color_tint(matte, self.matte_rgb)
         elif matte_type == 3:         # gradient
             direction = Config.get('items.types.image.matte.direction', 90)
             color_start = Config.get('items.types.image.matte.start_color', (247, 226, 162, 255))
             color_end   = Config.get('items.types.image.matte.end_color', (250, 243, 221, 255))
-            matte = gen_image_gradient_linear(self.df.width, self.df.height, direction, color_start, color_end)
+            matte = gen_image_gradient_linear(df.width, df.height, direction, color_start, color_end)
         elif matte_type == 4:         # gradient from image color
             direction = Config.get('items.types.image.matte.direction', 90)
             color_start = self.matte_rgb
             factor = Config.get('items.types.image.matte.gradient_factor', 0.1)
             color_end = color_brightness(color_start, factor)
-            matte = gen_image_gradient_linear(self.df.width, self.df.height, direction, color_start, color_end)
+            matte = gen_image_gradient_linear(df.width, df.height, direction, color_start, color_end)
         else:
             matte = load_image(self.texture_file)
-            image_resize(matte, self.df.width, self.df.height)
+            image_resize(matte, df.width, df.height)
             return matte
 
         _matte_ = load_image(self.texture_file)
-        image_resize(_matte_, self.df.width, self.df.height)
+        image_resize(_matte_, df.width, df.height)
         matte_opacity = Config.get('items.types.image.matte.opacity', 16)
-        image_draw(matte, _matte_, Rectangle(0, 0, self.df.width, self.df.height), Rectangle(0, 0, self.df.width, self.df.height), (255,255,255,matte_opacity))
+        image_draw(matte, _matte_, Rectangle(0, 0, df.width, df.height), Rectangle(0, 0, df.width, df.height), (255,255,255,matte_opacity))
 
         unload_image(_matte_)
 
         return matte
 
     def image_process(self):
+        df = self.df
         image = load_image(self.file)
 
         if not self.histogram:
@@ -122,20 +127,20 @@ class DFItemImage:
         self.matte_rgb = self.histogram.get_mat_color()
 
         width = height = left_margin = top_margin = 0
-        if self.df.ratio == self.ratio:
-            if self.df.width != self.width and self.df.height != self.height:
-                image_resize(image, self.df.width, self.df.height)
+        if df.ratio == self.ratio:
+            if df.width != self.width and df.height != self.height:
+                image_resize(image, df.width, df.height)
             self.x = self.y = 0
             self.texture_name = None
             self.border_name = None
         else:
             if not self.pair:
-                top_margin = self.df.height * Config.get('items.types.image.matte.top_margin', 5) // 100
-                height = self.df.height - top_margin
+                top_margin = df.height * Config.get('items.types.image.matte.top_margin', 5) // 100
+                height = df.height - top_margin
                 width = int(self.ratio * height)
                 image_resize(image, width, height)
                 y = top_margin // 2
-                x = (self.df.width - width) // 2
+                x = (df.width - width) // 2
                 # border
                 border, bw, bh, bt = self.set_border(width, height)
                 # matte
@@ -149,14 +154,14 @@ class DFItemImage:
                 image = matte
             else:
                 imagep = load_image(self.pair.file)
-                top_margin = self.df.height * Config.get('items.types.image.matte.top_margin', 5) // 100
-                left_margin = self.df.width * Config.get('items.types.image.matte.left_margin', 5) // 100
-                height = self.df.height - top_margin
+                top_margin = df.height * Config.get('items.types.image.matte.top_margin', 5) // 100
+                left_margin = df.width * Config.get('items.types.image.matte.left_margin', 5) // 100
+                height = df.height - top_margin
                 width = int(self.ratio * height)
                 image_resize(image, width, height)
                 image_resize(imagep, width, height)
                 y = top_margin // 2
-                x = (self.df.width - left_margin - width*2) // 3
+                x = (df.width - left_margin - width*2) // 3
                 # border
                 border, bw, bh, bt = self.set_border(width, height)
                 lm = left_margin // 2
@@ -180,10 +185,10 @@ class DFItemImage:
         else:
             self.alpha = 255
 
-        self.df.debug = f"{self.name=}, resize={width}x{height} {self.ratio=} {left_margin=} {top_margin=}"
+        df.debug = f"{self.name=}, resize={width}x{height} {self.ratio=} {left_margin=} {top_margin=}"
 
-        if self.df.texture: unload_texture(self.df.texture)
-        self.df.texture = load_texture_from_image(image)
+        if df.texture: unload_texture(df.texture)
+        df.texture = load_texture_from_image(image)
         unload_image(image)
 
     def image_update(self):
@@ -200,15 +205,16 @@ class DFItemImage:
             self.processed = True
 
     def image_draw(self):
-        draw_texture(self.df.texture, self.x, self.y, (255, 255, 255, self.alpha))
+        df = self.df
+        draw_texture(df.texture, self.x, self.y, (255, 255, 255, self.alpha))
         if self.items.meta_show:
             self.show_tags()
         #self.histogram.draw()
-        if self.ftt > self.df.image_ttl or self._skip:
+        if self.ftt > df.image_ttl or self._skip:
             self._skip = False
             self.ftt = 0
             self.processed = False
-            self.df.item = None
+            df.item = None
 
     def image_close(self):
         pass

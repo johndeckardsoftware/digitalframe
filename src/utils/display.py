@@ -65,7 +65,7 @@ def hdmi_set(self, on_off):
             self.logger.error(f"Display ON/OFF is xset via dpms, but an error occured. {e}")
 
     elif self.hdmi_power == 2:
-        try:  # try wlr-randr for RPi5 with wayland desktop
+        try:  # try wlr-randr for RPi4-5 with wayland desktop
             # check if hdmi is connected
             output = subprocess.check_output(["wlr-randr"])
             i = output.find(b'HDMI-A-1')

@@ -155,9 +155,10 @@ def config_setup(create_md=False):
     #full_call = sorted(full_call)
     #key_default = sorted(key_default, key=lambda x: x['key'].lower())
 
-    make_config = "\nimport os, logging\n"
+    make_config = "\nimport os, logging\nscale=1.0\n"
     for item in full_call:
-        make_config += item + "\n"
+        if 'self.' not in item:
+            make_config += item + "\n"
     make_config += "\nConfig.save()"
 
     try:
@@ -184,4 +185,4 @@ def out_item(md, fullkey, key, item):
         for k, i in item.items():
             out_item(md, f"{fullkey}.{k}", k, i)
     else:
-        md.write(f"| `{fullkey}` | `{item}` | {key} |\n")
+        md.write(f"| {fullkey} | `{item}` | {key} |\n")
