@@ -4,7 +4,7 @@ psutil
 paho-mqtt
 exifread
 bluedot
-evdev
 opencv-python
 pygltflib
 schedule
+ffmpeg-python
