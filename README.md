@@ -1,21 +1,22 @@
 
-**Digitalframe (DF)**
+**Digitalframe**
 
-An advanced, modular digital photo frame system developed in Python using **pyray** (Raylib). This project is designed to run on **Raspberry Pi4** homemade digitalframe [www.thedigitalpictureframe.com](https://www.thedigitalpictureframe.com/) but run seamlessly on both **Windows** and **Linux**, offering fluid rendering of images, videos, and 3D models with deep hardware integration for home automation.
+Simple digital frame application developed in Python using [raylib](https://electronstudio.github.io/raylib-python-cffi/README.html#quickstart). This project is designed to run on homemade digitalframe build with **Raspberry Pi4** and 4k Monitor. Here a good starting point if you want to build your digitalframe [www.thedigitalpictureframe.com](https://www.thedigitalpictureframe.com/category/build-your-own/). The application works on both **Windows** and **Linux**, obviously apart from the specificities of Raspberry. The application can be controlled with a simple wireless keyboard, a Bluetooth remote control, or with home automation systems such as 'Home Assistant'. The focus is on the photographic component, the video and 3D parts are just my attempt to delve deeper into the 3D features of the raylib library. 
 
 ## **🚀 Key Features**
 
-* **Multi-format Support:** Native rendering of images (JPG), videos (MP4, AVI) via OpenCV, and 3D models (GLB, OBJ).  
+* **Multi-format Support:** Native rendering of images (JPG), videos (MP4, AVI, MOV, WAV) with the support of OpenCV and ffmpeg, and 3D models (GLB, OBJ).  
 * **Visual Enhancements:**
-  * Automatic "matte" background and borders coloring
+  * Automatic "matte" background and borders depending on image size
   * Matte texture and borders customizable
   * Pairing of vertical images
   * Filter by folder and metadata
 * **Direct hardware integration (Raspberry only):**
   * **PIR Sensor:** For automatic screen power management based on human presence.
+  * **BH1750 Light Sensor:** For automatic set image brightness to the room lux.
 * **Remote Control Support:**
   * Provides an automatic integration into [Home Assistant](https://www.home-assistant.io/) via MQTT discovery.
-  * Dynamic key mapping for external HID devices like the BoxPut Remote or BlueDot.  
+  * Dynamic key mapping for external HID devices like the BoxPut Remote or Bluedot.  
   * Light and Motion sensor via MQTT for Automatic screen power management based on human presence and ambient light photo blend.
 * **Live Folder Monitoring:** Real-time library updates using watchdog. Perfect for syncing files via **SFTP** or network shares without restarting.
 
@@ -24,19 +25,26 @@ An advanced, modular digital photo frame system developed in Python using **pyra
 | File | Description |
 | :---- | :---- |
 | df.py | Core engine and main application loop. |
-| config.py | Centralized JSON configuration manager. |
 | dfitems.py | Media indexing and scanning logic. |
-| devices.py | Interface for PIR sensors, fans, and remote inputs. |
-| dfimage.py / dfvideo.py | Dedicated rendering modules for photos and video streams. |
-| display.py / ddcutil.py | Utilities for monitor power and brightness control. |
-| metrics.py | System resource monitoring (CPU, RAM, Temp). |
+| dfimage.py | Image handler |
+| dfvideo.py | Video handler |
+| dfmodel.py | 3D model in .GLB format handler |
+| dfshader.py | Shader code wrapper to easily manage shader |
+| menu.py | On Screen Menu |
+| mqtt.py | Integration with Home Assitant. |
+| devices.py | Keyboard and Remote device handler. |
+| rpi_bluedot.py | Use Library and App [Bluedot](https://bluedot.readthedocs.io/en/latest/) as a Remote device |
+| rpi_pir.py | Manage PIR Sensor directly connected to Raspberry |
+| rpi_bh1750.py | Manage BH1750 Light Sensor directly connected to Raspberry |
+| config.py | Centralized JSON configuration manager |
+
 
 ## **🛠️ Requirements**
 
 ### **Software**
 
 * Python 3.9+  
-* Dependencies: raylib, opencv-python, numpy, exifread, psutil, watchdog.
+* Dependencies: raylib, watchdog, psutil, paho-mqtt, exifread, bluedot, evdev, opencv-python, pygltflib, schedule, ffmpeg-python (required ffmpeg install)
 
 ## **🔧 Installation & Setup**
 

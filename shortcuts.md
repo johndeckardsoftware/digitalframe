@@ -1,75 +1,52 @@
 
 # ⌨️ Digitalframe Shortcut Guide
 
-This guide lists all the keyboard shortcuts available to control the Digital Frame application.
+This guide lists all the keyboard shortcuts available to control the Digitalframe application.
 
-## Standard Controls
+# Keyboard Shortcuts
 
 | Key | Action |
 | :--- | :--- |
-| **ESC** | Exit application |
-| **F1** | Show this help |
+| **ESC** | Exit |
+| **KEY_MENU** | On Screen Menu |
+| **F1** | This help |
 | **F2** | Remote help |
-| **F3** | Pause slideshow |
-| **F4** | Previous item |
-| **F5** | Next item |
-| **F6** | Mark as Private |
-| **F7** | Put display to Sleep |
-| **F8** | Wakeup display |
-| **F9** | Change folder (Up) |
-| **F10** | Change folder (Down) |
+| **F3** | Pause |
+| **F4** | Previous |
+| **F5** | Next |
+| **F6** | Private |
+| **F7** | Sleep |
+| **F8** | Wakeup |
+| **F9** | Change folder up |
+| **F10** | Change folder down |
 | **F11** | Toggle Fullscreen |
+| **L** | Toggle lightness mode |
+| **K** | Increase lux adjustment value |
+| **J** | Decrease lux adjustment value |
+| **P** | Increase sensor lux value |
+| **O** | Decrease sensor lux value |
+| **Y** | Increase light direction angle (light_gradient shader) |
+| **T** | Decrease light direction angle (light_gradient shader) |
+| **B** | Border selection |
+| **M** | Matte selection |
+| **R** | Change Image show time (sec.), autosleep time (min.) |
+| **C** | Toggle clock |
+| **1-6** | Toggle item info: [1] title, [2] caption, [3] name, [4] date, [5] location, [6] folder |
+| **0** | Set off all item info |
+| **S** | Shuffle |
 
----
-
-## Visual & Playback Settings
+## CTRL + Key Combinations
 
 | Key | Action |
 | :--- | :--- |
-| **L** | Toggle lightness mode |
-| **UP** | Increase brightness |
-| **DOWN** | Decrease brightness |
-| **LEFT / RIGHT** | Increase light direction angle |
-| **J** | Decrease lux adjustment value |
-| **K** | Increase lux adjustment value |
-| **B** | Select border style |
-| **M** | Select matte (background) style |
-| **T** | Change Image show time (sec) / Autosleep (min) |
-| **C** | Toggle clock display |
-| **P** | Toggle Private mode |
-| **S** | Toggle Shuffle |
-
----
-
-## Item Information Overlay
-
-Press these numeric keys to toggle specific metadata on screen:
-
-* **[1]** Title
-* **[2]** Caption
-* **[3]** Filename
-* **[4]** Date
-* **[5]** Location
-* **[6]** Folder Name
-* **[0]** **Turn OFF all info**
-
----
-
-## System & Debug (CTRL + Key)
-
-Use the **CTRL** modifier with these keys for system-level commands:
-
-| Combination | Action |
-| :--- | :--- |
-| **CTRL + F** | Show FPS (Frames Per Second) |
-| **CTRL + G** | Toggle between 1 and 6 FPS (Power saving) |
-| **CTRL + S** | Publish current state (MQTT/Logs) |
-| **CTRL + D** | Toggle Debug mode ON |
-| **CTRL + Q** | Show current filter |
-| **CTRL + M** | Show system metrics (CPU, RAM, Temp) |
-| **CTRL + H** | Toggle HDMI output |
+| **CTRL + F** | Show fps |
+| **CTRL + G** | Toggle between 1 and 6 fps |
+| **CTRL + S** | Publish state |
+| **CTRL + D** | Debug on |
+| **CTRL + Q** | Show filter |
+| **CTRL + M** | Show system metrics |
+| **CTRL + H** | Toggle HDMI |
 | **CTRL + E** | Exit |
-| **CTRL + R** | Reboot system |
-| **CTRL + P** | Shutdown system |
+| **CTRL + R** | Reboot |
+| **CTRL + P** | Shutdown |
 
----
