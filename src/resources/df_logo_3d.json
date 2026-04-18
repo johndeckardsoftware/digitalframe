@@ -1,0 +1,14 @@
+{
+    "bg_texture_file": "DJI_0100.jpg",
+    "motion_expr_a": "math.sin(t * s) * -45",
+    "motion_expr": "math.sin(t * s) * math.exp(-0.01 * t) * 90",
+    "grid": true,
+    "grid_slices": 70,
+    "grid_axis_height": 69.0,
+    "cam_enabled": false,
+    "axes": [0.0, 1.0, 0.0],
+    "billboard": false,
+    "billboard_pro": true,
+    "billboard_size": 200.0,
+    "texture": false
+}
