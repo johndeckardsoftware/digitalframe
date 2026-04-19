@@ -46,7 +46,9 @@ class Devices:
 
         # map key text to key code
         self.key_map = {name: value for name, value in vars(KeyboardKey).items() if name.startswith("KEY_")}
-        self.key_kb_menu = Config.get('window.menu_key', KeyboardKey.KEY_KB_MENU)
+        key_menu = Config.get('window.menu_key', "KEY_KB_MENU")
+        if key_menu in self.key_map: self.key_kb_menu = self.key_map[key_menu]
+        else: self.key_kb_menu = KeyboardKey.KEY_KB_MENU
 
         self.autosleep = 0
         self.text_pause = None
@@ -119,7 +121,7 @@ class Devices:
         if (is_key_down(KeyboardKey.KEY_LEFT_CONTROL) or is_key_down(KeyboardKey.KEY_RIGHT_CONTROL) or vctrl):
             if key == KeyboardKey.KEY_M:
                 metrics = system_metrics()
-                self.show(metrics, 10, 20, tint=self.metrics_color, fs=36, shadow=2, ttl=30)
+                self.show(metrics, 2, 20, tint=self.metrics_color, fs=36*self.df.scale, shadow=2, ttl=30)
             elif key == KeyboardKey.KEY_D:
                 df.show_debug = not df.show_debug
             elif key == KeyboardKey.KEY_Q:
@@ -163,7 +165,7 @@ class Devices:
                 clock.push_set_fps(6)
 
         elif key == KeyboardKey.KEY_F1:
-            self.show(self.help, 3, 3, tint=self.help_color, fs=int(-28*self.menu.scale), shadow=2, ttl=24)
+            self.show(self.help, 3, 3, tint=self.help_color, fs=int(-24*self.df.scale), shadow=2, ttl=24)
 
         elif key == KeyboardKey.KEY_F2:
             df.show_remote_help = not df.show_remote_help
@@ -244,7 +246,7 @@ class Devices:
         elif key == KeyboardKey.KEY_M:
             i = self.cur_matte
             self.set_matte(self.cur_matte)
-            self.cur_matte = (self.cur_matte + 1) % len(self.matte)
+            self.cur_matte = (self.cur_matte + 1) % len(self.mattes)
 
         elif key == KeyboardKey.KEY_R:
             self.ttl, self.autosleep = self.show_mode[self.show_mode_index]

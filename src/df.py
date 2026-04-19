@@ -35,6 +35,9 @@ class DigitalFrame:
             self.width = Config.get('window.width', 1024)
             self.height = Config.get('window.height', 576)
         self.ratio = round(self.width / self.height, 2)
+        self.scale_ref_width = Config.get('window.scale_ref_width', 1920)
+        self.scale = (self.width / self.scale_ref_width)
+
         # timing
         clock.fps = Config.get('window.fps', 1)
         clock.ft = 1 / clock.fps
@@ -108,6 +111,9 @@ class DigitalFrame:
             self.width = get_screen_width()
             self.height = get_screen_height()
         self.ratio = round(self.width / self.height, 2)
+        self.scale = (self.width / self.scale_ref_width)
+        self.devices.menu.set_style_size(self.scale)
+        self.devices.menu.osk.set_style_size(self.scale)
         update_dftext_vars()
         if self.item and self.item.type == ItemType.IMAGE:
             self.item.processed = False

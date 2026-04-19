@@ -13,12 +13,7 @@ class OnScreenMenu:
         self.df = digitalframe
         self.devices = devices
         # Style
-        self.scale = Config.get('window.menu.scale', 1.6)  # 0.5 for 2k
-        self.text_h = int(40 * self.scale)
-        self.text_b = int(10 * self.scale)
-        self.back_h = int(40 * self.scale)
-        self.back_b = int(5 * self.scale)
-        self.font_h = int(28 * self.scale)
+        self.set_style_size(self.df.scale)
         # Menus state
         self.menus = self.load_menus()
         self.current = "menu"
@@ -32,6 +27,13 @@ class OnScreenMenu:
         self.osk = OnScreenKeyboard(self)
         self.is_osk = False
         self.in_osk = False
+
+    def set_style_size(self, scale):
+        self.text_h = int(40 * scale)
+        self.text_b = int(10 * scale)
+        self.back_h = int(40 * scale)
+        self.back_b = int(5 * scale)
+        self.font_h = int(28 * scale)
 
     def load_menus(self):
         with open(os.path.join(Config.RESOURCES, "menus.json"), "r") as f:
@@ -171,4 +173,4 @@ class OnScreenMenu:
         if self.in_osk:
             self.osk.draw()
 
-        dftext(self.devices.get_status(), -2, -3, font=self.df.font, fs=self.font_h, tint=WHITE, shadow=2)
+        dftext(self.devices.get_status(), -2, -3, font=self.df.font, fs=self.font_h-2, tint=WHITE, shadow=2)

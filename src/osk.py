@@ -6,37 +6,40 @@ logger = logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
 
 class OnScreenKeyboard:
-    def __init__(self, parent, x=None, y=None):
-        self.parent = parent
+    def __init__(self, devices, x=None, y=None):
+        self.devices = devices
         self.pos_x = x
         self.pos_y = y
         # keyboard geometry
-        self.scale = Config.get('window.menu.osk_scale', 1.0)
         self.layouts = self.load_layout()
         self.layout = self.layouts['base']
         self.info = self.layouts['base_info']
-        self.key_size = int(self.info['key_size'] * self.scale)
-        self.spacing = int(self.info['spacing'] * self.scale)
-        self.font_size = int(self.info['font_size'] * self.scale)
         # kb state
         self.row = 0
         self.col = 0
         self.cursor = 0
         self.typed_text = ""
         self.is_shift = False
-        self.get_kb_pos()
+        # style
+        self.set_style_size(self.devices.df.scale)
 
     def load_layout(self):
         with open(os.path.join(Config.RESOURCES, Config.get('window.menu.osk_layout', "osk_en_layout.json")), "r") as f:
             return json.load(f)
 
+    def set_style_size(self, scale):
+        self.key_size = int(self.info['key_size'] * scale)
+        self.spacing = int(self.info['spacing'] * scale)
+        self.font_size = int(self.info['font_size'] * scale)
+        self.get_kb_pos()
+
     def get_kb_pos(self):
-        if not self.pos_x:
-            width = len(self.layout[0]) * (self.key_size + self.spacing)
-            self.pos_x = (self.parent.df.width - width) // 2
-        if not self.pos_y:
-            height = len(self.layout) * (self.key_size + self.spacing)
-            self.pos_y = self.parent.df.height - height
+        #if not self.pos_x:
+        width = len(self.layout[0]) * (self.key_size + self.spacing)
+        self.pos_x = (self.devices.df.width - width) // 2
+        #if not self.pos_y:
+        height = len(self.layout) * (self.key_size + self.spacing)
+        self.pos_y = self.devices.df.height - height
 
     def update(self, key):
         # Navigation
@@ -119,9 +122,9 @@ class OnScreenKeyboard:
                 # X-Offset logic to center specific rows or keys
                 if key in self.info: # key with specific x and width
                     x_draw, width = self.info[key]
-                    x_draw = int(x_draw * self.scale)
+                    x_draw = int(x_draw * self.devices.df.scale)
                     x_draw += self.pos_x
-                    width = int(width * self.scale)
+                    width = int(width * self.devices.df.scale)
                 else:
                     width = self.key_size
                     x_draw = self.pos_x + (c * (self.key_size + self.spacing))

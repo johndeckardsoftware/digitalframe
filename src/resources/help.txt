@@ -1,6 +1,5 @@
 ESC Exit
-KEY_KB_MENU    On Screen Menu.
-               If your keyboard doesn't have a content text menu key, set window.menu_key = 342 for left ALT in config.json 
+KEY_KB_MENU    On Screen Menu. Set, for example, window.menu_key = "KEY_LEFT_ALT" in config.json to change it 
 F1  This help
 F2  Remote help
 F3  Pause
