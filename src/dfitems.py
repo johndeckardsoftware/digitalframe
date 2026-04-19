@@ -17,7 +17,7 @@ class DFItemList:
         self.index = 0
         self.last_index = 0
         self.type_ext = Config.get('items.types.image.ext', ['.jpg', '.jpeg'])          # just for autocreating config file
-        self.type_ext = Config.get('items.types.video.ext', ['.mp4', '.mpg', ".avi"])   # just for autocreating config file
+        self.type_ext = Config.get('items.types.video.ext', ['.mp4', '.mpg', ".avi", ".mov"])   # just for autocreating config file
         self.type_ext = Config.get('items.types.model.ext', ['.glb', '.obj', '.gltf'])  # just for autocreating config file
         self.type_ext = Config.get('items.types', {})
         self.all_ext = self.get_all_ext()
