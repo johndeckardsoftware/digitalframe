@@ -33,7 +33,7 @@ class OnScreenMenu:
         self.text_b = int(10 * scale)
         self.back_h = int(40 * scale)
         self.back_b = int(5 * scale)
-        self.font_h = int(28 * scale)
+        self.font_h = 28 * scale
 
     def load_menus(self):
         with open(os.path.join(Config.RESOURCES, "menus.json"), "r") as f:
