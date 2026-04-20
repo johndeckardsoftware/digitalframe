@@ -60,19 +60,20 @@ class DrawTextTTLList:
             self.remove(self.show_id)
         if not font: font = self.df.font
         if not tint: tint = self.info_color
+        fs *= self.df.scale
         self.show_id = self.add(DrawTextTTL(text, row, col, font=font, fs=fs, tint=tint, shadow=shadow, ttl=ttl))
         return self.show_id
 
     def show3(self, text, ttl=1):
         if self.show3_id != -1:
             self.remove(self.show3_id)
-        self.show3_id = self.add(DrawTextTTL(text, -3, 2, font=self.df.font, fs=-30, tint=self.info_color, shadow=2, ttl=ttl))
+        self.show3_id = self.add(DrawTextTTL(text, -3, 2, font=self.df.font, fs=-30*self.df.scale, tint=self.info_color, shadow=2, ttl=ttl))
         return self.show3_id
 
     def show4(self, text, ttl=2):
         if self.show4_id != -1:
             self.remove(self.show4_id)
-        self.show4_id = self.add(DrawTextTTL(text, -4, 2, font=self.df.font, fs=-30, tint=self.info_color, shadow=2, ttl=ttl))
+        self.show4_id = self.add(DrawTextTTL(text, -4, 2, font=self.df.font, fs=-30*self.df.scale, tint=self.info_color, shadow=2, ttl=ttl))
         return self.show4_id
 
     def draw_ttl(self):
