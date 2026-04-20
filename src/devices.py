@@ -47,8 +47,7 @@ class Devices:
         # map key text to key code
         self.key_map = {name: value for name, value in vars(KeyboardKey).items() if name.startswith("KEY_")}
         key_menu = Config.get('window.menu_key', "KEY_KB_MENU")
-        if key_menu in self.key_map: self.key_kb_menu = self.key_map[key_menu]
-        else: self.key_kb_menu = KeyboardKey.KEY_KB_MENU
+        self.key_kb_menu = self.key_map.get(key_menu, KeyboardKey.KEY_KB_MENU)
 
         self.autosleep = 0
         self.text_pause = None
