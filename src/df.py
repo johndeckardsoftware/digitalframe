@@ -298,6 +298,7 @@ class DigitalFrame:
         if value == "*": value = ""
         self.tags_filter = value
         self.items.set_filter(value)
+        Config.set('items.filter', value)
         self.logger.info(f"filter: {value}")
 
     def display_on(self):
