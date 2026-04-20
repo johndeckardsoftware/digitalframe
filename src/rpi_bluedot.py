@@ -14,9 +14,6 @@ class BlueDotRemote():
         self.bluedot = None
         self.status = ""
         self.count = 0
-        key_menu = Config.get('window.menu_key', "KEY_KB_MENU")
-        if key_menu in self.key_map: self.key_kb_menu = self.key_map[key_menu]
-        else: self.key_kb_menu = KeyboardKey.KEY_KB_MENU
 
     def btn_up(self):
         self.devices.keyboard(vkey=KeyboardKey.KEY_UP)
@@ -34,8 +31,7 @@ class BlueDotRemote():
         self.devices.keyboard(vkey=KeyboardKey.KEY_ENTER)
 
     def btn_menu(self):
-
-        self.devices.keyboard(vkey=self.key_kb_menu)
+        self.devices.keyboard(vkey=self.devices.key_kb_menu)
 
     def btn_end(self):
         self.devices.keyboard(vkey=KeyboardKey.KEY_END)
