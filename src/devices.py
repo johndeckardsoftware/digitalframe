@@ -120,7 +120,7 @@ class Devices:
         if (is_key_down(KeyboardKey.KEY_LEFT_CONTROL) or is_key_down(KeyboardKey.KEY_RIGHT_CONTROL) or vctrl):
             if key == KeyboardKey.KEY_M:
                 metrics = system_metrics()
-                self.show(metrics, 2, 20, tint=self.metrics_color, fs=36*self.df.scale, shadow=2, ttl=30)
+                self.show(metrics, 2, 20, tint=self.metrics_color, fs=36, shadow=2, ttl=30)
             elif key == KeyboardKey.KEY_D:
                 df.show_debug = not df.show_debug
             elif key == KeyboardKey.KEY_Q:
@@ -149,7 +149,7 @@ class Devices:
             elif key >= KeyboardKey.KEY_ONE and key <= KeyboardKey.KEY_NINE:
                 self.inc_value = key - 48
                 self.show3(f"increment: {self.inc_value}")
-            elif key >= KeyboardKey.KEY_L:
+            elif key == KeyboardKey.KEY_L:
                 msg = df.get_debug_msg()
                 logger.info(f"{msg}, display={df.display}, pause={df.paused}")
 
@@ -164,7 +164,7 @@ class Devices:
                 clock.push_set_fps(6)
 
         elif key == KeyboardKey.KEY_F1:
-            self.show(self.help, 3, 3, tint=self.help_color, fs=int(-24*self.df.scale), shadow=2, ttl=24)
+            self.show(self.help, 3, 3, tint=self.help_color, fs=-24, shadow=2, ttl=24)
 
         elif key == KeyboardKey.KEY_F2:
             df.show_remote_help = not df.show_remote_help
@@ -311,16 +311,14 @@ class Devices:
         if df.item: df.item.skip()
 
     def set_border(self, index):
-        Config.set('items.types.image.border.file', self.borders[index]['file'])
-        Config.set('items.types.image.border.opacity', self.borders[index]['opacity'])
-        Config.set('items.types.image.border.thick', self.borders[index]['thick'])
-        self.show3(f"border: {self.borders[index]['file']}", ttl=2)
+        for k, v in self.borders[index].items():
+            Config.set(f'items.types.image.border.{k}', v)
+        self.show3(f"border: {self.borders[index]}", ttl=2)
 
     def set_matte(self, index):
-        Config.set('items.types.image.matte.texture', self.mattes[index]['texture'])
-        Config.set('items.types.image.matte.opacity', self.mattes[index]['opacity'])
-        Config.set('items.types.image.matte.type', self.mattes[index]['type'])
-        self.show3(f"texture: {self.mattes[index]['texture']}", ttl=3)
+        for k, v in self.mattes[index].items():
+            Config.set(f'items.types.image.matte.{k}', v)
+        self.show3(f"texture: {self.mattes[index]}", ttl=3)
 
     def set_ttl(self, increment):
         df = self.df
