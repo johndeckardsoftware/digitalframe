@@ -33,6 +33,7 @@
         {"t": "Back", "back": true, "m": "menu"}
     ],
     "light_sel": 0,
+    "light_width": 1200,
     "meta": [
         {"g": "f'Toogle Title ({self.df.items.get_show_text(\"title\")})'", "k": "KEY_ONE"},
         {"g": "f'Toogle Caption ({self.df.items.get_show_text(\"caption\")})'", "k": "KEY_TWO"},
