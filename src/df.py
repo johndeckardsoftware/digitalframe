@@ -9,7 +9,7 @@ from config import Config, ItemType
 from utils.folderwatch import FolderWatch
 from utils.display import hdmi_set_on, hdmi_set_off, hdmi_is_connected
 from utils.lux2brightness import convert_lux_to_range, get_gauss_hour
-from utils.raspberry import set_autohide_and_notification
+from utils.raspberry import is_raspberry_pi, set_autohide_and_notification
 from dfshader import create_shader
 from dfitems import DFItemList
 from dftext import DrawTextTTLList, dftext, update_dftext_vars
@@ -73,13 +73,13 @@ class DigitalFrame:
         # timer
         self.timer = Config.get('timer.enabled', False)
         self.timer_format = Config.get('timer.format', '%H:%M:%S')
-        self.timer_size = Config.get('timer.size', -30)
+        self.timer_size = Config.get('timer.size', 36)
+        self.timer_pos = Config.get('timer.pos', [1, -2])
         self.timer_color = Config.get_color('timer.rgba', [255, 255, 255, 128])
         # actual item
         self.item = None
         # config vars
         self.debug_color = Config.get('window.debug_color', (255, 255, 255, 255))
-        self.debug_fontsize = -24 if self.fullscreen else -12
         self.error_color = Config.get('window.error_color', (255, 0, 0, 255))
         # overlay
         self.show_overlay = False
@@ -152,6 +152,7 @@ class DigitalFrame:
         set_trace_log_level(TraceLogLevel.LOG_WARNING)  #raylib
         #set_trace_log_level(TraceLogLevel.LOG_DEBUG)  #raylib
 
+        self.on_platform_set()
         FolderWatch(self.items)
 
         if self.fullscreen: set_window_state(ConfigFlags.FLAG_WINDOW_UNDECORATED|ConfigFlags.FLAG_WINDOW_TOPMOST)
@@ -204,11 +205,11 @@ class DigitalFrame:
 
             if self.timer:
                 now = datetime.datetime.now()
-                dftext(now.strftime(self.timer_format), 1, -3, fs=self.timer_size, tint=self.timer_color, shadow=2)
+                dftext(now.strftime(self.timer_format), self.timer_pos[0], self.timer_pos[1], font=self.font, fs=self.timer_size*self.scale, tint=self.timer_color, shadow=2)
 
             if self.show_debug and self.debug:
                 msg = self.get_debug_msg()
-                dftext(msg, -1, 0, font=self.font, fs=self.debug_fontsize, tint=self.debug_color, shadow=2)
+                dftext(msg, -1, 0, font=self.font, fs=-12*self.scale, tint=self.debug_color, shadow=2)
 
             if self.show_fps:
                 draw_fps(10, 10)
@@ -224,7 +225,7 @@ class DigitalFrame:
 
             if self.error:
                 clear_background(BLACK)
-                dftext(self.error, 'C', 'C', font=self.font, fs=48, tint=self.error_color, shadow=0)
+                dftext(self.error, 'C', 'C', font=self.font, fs=24*self.scale, tint=self.error_color, shadow=0)
                 self.error = None
 
             end_drawing()
@@ -381,6 +382,14 @@ motion={self.motion}, {self.debug}"
 
         # Resize and return
         image_resize(image, new_w, new_h)
+
+    def on_platform_set(self):
+        if self.platform == "windows":
+            self.hdmi_power = 3
+        elif is_raspberry_pi():
+            self.hdmi_power = 2
+        else:
+            self.hdmi_power = 4
 
     def stop(self):
         try:
