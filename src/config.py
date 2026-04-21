@@ -150,7 +150,7 @@ def config_setup(create_md=False):
     logger = logging.getLogger(__name__)
     key_default = []
     full_call = []
-    list_files(Config.WORK_PATH, key_default, full_call)
+    list_files(os.path.join(Config.WORK_PATH, "src"), key_default, full_call)
 
     #full_call = sorted(full_call)
     #key_default = sorted(key_default, key=lambda x: x['key'].lower())
