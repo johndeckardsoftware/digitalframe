@@ -4,6 +4,7 @@ def hdmi_is_on(self):
     #
     # https://linuxcommandlibrary.com/man/vcgencmd
     #
+    # raspberry vcgencmd
     if self.hdmi_power == 0:
         try:  # vcgencmd only applies to raspberry pi
             state = str(subprocess.check_output(["vcgencmd", "display_power"]))
@@ -14,6 +15,7 @@ def hdmi_is_on(self):
         except (FileNotFoundError, ValueError, OSError) as e:
             self.logger.error(f"Display ON/OFF is vcgencmd, but an error occurred. {e}")
         return True
+    # linux X11 xset
     elif self.hdmi_power == 1:
         try:  # try xset on linux, DPMS has to be enabled
             output = subprocess.check_output(["xset", "-display", ":0", "-q"])
@@ -24,6 +26,7 @@ def hdmi_is_on(self):
         except (subprocess.SubprocessError, FileNotFoundError, ValueError, OSError) as e:
             self.logger.error(f"Display ON/OFF is X with dpms enabled, but an error occurred. {e}")
         return True
+    # raspberry wlr-randr
     elif self.hdmi_power == 2:
         try:
             output = subprocess.check_output(["wlr-randr"])
@@ -35,17 +38,31 @@ def hdmi_is_on(self):
         except (subprocess.SubprocessError, FileNotFoundError, ValueError, OSError) as e:
             self.logger.error(f"Display ON/OFF is wlr-randr, but an error occurred. {e}")
         return True
+    # windows 
     elif self.hdmi_power == 3:
         try:
             return self.display 
         except (subprocess.SubprocessError, FileNotFoundError, ValueError, OSError) as e:
             self.logger.error(f"Display ON/OFF windows error: {e}")
         return True
+    # linux X11 xrandr
+    elif self.hdmi_power == 4:
+        try:
+            output = subprocess.check_output(["xrandr"])
+            i = output.find(b'connected primary')
+            if i != -1:
+                return True
+            else:
+                return False
+        except (subprocess.SubprocessError, FileNotFoundError, ValueError, OSError) as e:
+            self.logger.error(f"Display ON/OFF is xrandr, but an error occurred. {e}")
+        return True
     else:
         self.logger.warning(f"hdmi_is_on: unsupported {self.hdmi_power=}")
         return True
 
 def hdmi_set(self, on_off):
+    # raspberry vcgencmd    
     if self.hdmi_power == 0:
         try:  # vcgencmd only applies to raspberry pi
             if on_off is True:
@@ -54,7 +71,7 @@ def hdmi_set(self, on_off):
                 subprocess.call(["vcgencmd", "display_power", "0"])
         except (subprocess.SubprocessError, FileNotFoundError, ValueError, OSError) as e:
             self.logger.error(f"Display ON/OFF is vcgencmd, but an error occured. {e}")
-
+    # linux X11 xset
     elif self.hdmi_power == 1:
         try:  # try xset on linux, DPMS has to be enabled
             if on_off is True:
@@ -63,7 +80,7 @@ def hdmi_set(self, on_off):
                 subprocess.call(["xset", "-display", ":0", "dpms", "force", "off"])
         except (ValueError, TypeError) as e:
             self.logger.error(f"Display ON/OFF is xset via dpms, but an error occured. {e}")
-
+    # raspberry wlr-randr
     elif self.hdmi_power == 2:
         try:  # try wlr-randr for RPi4-5 with wayland desktop
             # check if hdmi is connected
@@ -78,7 +95,7 @@ def hdmi_set(self, on_off):
                     subprocess.call(wlr_randr_cmd)
         except (ValueError, TypeError) as e:
             self.logger.error(f"Display ON/OFF is wlr-randr, but an error occured. {e}")
-
+    # windows
     elif self.hdmi_power == 3:  # windows
         try:
             import ctypes
@@ -113,6 +130,20 @@ def hdmi_set(self, on_off):
         except Exception as e:
             self.logger.error(f"Display ON/OFF using sendmessage: {e}")
         return True
+    # linux X11 xrandr
+    elif self.hdmi_power == 4:
+        try:
+            # check if hdmi is connected
+            output = subprocess.check_output(["xrandr", "--listactivemonitors"])
+            name = output.decode("utf-8").split(" ")[-1]
+            if on_off:
+                wlr_randr_cmd = ["xrandr", "--output", name, "--auto"]
+                subprocess.call(wlr_randr_cmd)
+            else:
+                wlr_randr_cmd = ["xrandr", "--output", name, "--off"]
+                subprocess.call(wlr_randr_cmd)
+        except (ValueError, TypeError) as e:
+            self.logger.error(f"Display ON/OFF is xrandr, but an error occured. {e}")
     else:
         self.logger.warning(f"hdmi_set({on_off}: unsupported {self.hdmi_power=}")
 
