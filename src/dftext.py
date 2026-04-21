@@ -82,9 +82,9 @@ class DrawTextTTLList:
 
 width = 1024
 height = 768
-row_height = 16
+row_height = Config.get('window.col_height', 16)
 row_max = height // row_height
-col_width = 16
+col_width = Config.get('window.col_width', 16)
 col_max = width // col_width
 row = 0
 col = 0
@@ -93,9 +93,7 @@ def update_dftext_vars():
     global width, height, row_height, row_max, col_width, col_max, row, col
     width = get_render_width()
     height = get_render_height()
-    row_height = Config.get('window.col_height', 16)
     row_max = height // row_height
-    col_width = Config.get('window.col_width', 16)
     col_max = width // col_width
     row = 0
     col = 0
@@ -153,12 +151,13 @@ def dftext(text, row=None, col=None, rh=0, cw=0, font=None, fs=16, spacing=1, ti
     row_max = height // row_height
     col_max = width // col_width
     if font:
-        size = measure_text_ex(font, text, fs, spacing)
+        size = measure_text_ex(font, text, abs(fs), spacing)
         size = size.x // col_width
         if shadow:
             draw_text_ex(font, text, (col2x(col, size, cw, fs)+shadow, row2y(row, rh, fs)+shadow), abs(fs), spacing, (20,20,20,128))
         draw_text_ex(font, text, (col2x(col, size, cw, fs), row2y(row, rh, fs)), abs(fs), spacing, tint)
     else:
+        fs = int(fs)
         size = measure_text(text, fs) // col_width
         if shadow:
             draw_text(text, col2x(col, size, cw, fs)+shadow, row2y(row, rh, fs)+shadow, abs(fs), (20,20,20,128))
