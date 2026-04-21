@@ -1,10 +1,10 @@
 import os, json, logging
+from pyray import *
 import clock
 from config import Config
 from osk import OnScreenKeyboard
-from pyray import *
 from dftext import dftext
-
+import utils.ddcutil as ddcutil
 logger = logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
 
@@ -148,7 +148,8 @@ class OnScreenMenu:
         draw_rectangle(0, 0, get_screen_width(), get_screen_height(), fade(BLACK, 0.5))
 
         # Draw Menu Box
-        menu_w, menu_h = 400, self.back_h * len(self.options) + self.back_b * 2
+        menu_w = self.menus.get(f'{self.current}_width', 800)
+        menu_h = self.back_h * len(self.options) + self.back_b * 2
         start_x = (get_screen_width() - menu_w) // 2
         start_y = (get_screen_height() - menu_h) // 2
 
