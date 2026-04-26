@@ -6,12 +6,12 @@ logger = logging.getLogger(__name__)
 #logger.setLevel(logging.DEBUG)
 
 class OnScreenKeyboard:
-    def __init__(self, devices, x=None, y=None):
+    def __init__(self, devices, x=None, y=None, layout=None):
         self.devices = devices
         self.pos_x = x
         self.pos_y = y
         # keyboard geometry
-        self.layouts = self.load_layout()
+        self.layouts = self.load_layout(layout)
         self.layout = self.layouts['base']
         self.info = self.layouts['base_info']
         # kb state
@@ -23,8 +23,10 @@ class OnScreenKeyboard:
         # style
         self.set_style_size(self.devices.df.scale)
 
-    def load_layout(self):
-        with open(os.path.join(Config.RESOURCES, Config.get('window.menu.osk_layout', "osk_en_layout.json")), "r") as f:
+    def load_layout(self, layout):
+        if not layout:
+            layout = Config.get('window.menu.osk_layout', "osk_en_layout.json")
+        with open(os.path.join(Config.RESOURCES, layout), "r") as f:
             return json.load(f)
 
     def set_style_size(self, scale):
@@ -43,7 +45,7 @@ class OnScreenKeyboard:
 
     def update(self, key):
         # Navigation
-        # key_back from remote, key_end from keyboard
+        # key_back from remote, "enter" or key_end from keyboard
         if key == KeyboardKey.KEY_BACK or key == KeyboardKey.KEY_END:
             return False
 
@@ -68,7 +70,7 @@ class OnScreenKeyboard:
         # Selection
         if key == KeyboardKey.KEY_ENTER or key == KeyboardKey.KEY_SPACE:
             key_val = self.layout[self.row][self.col]
-            #if key_val == "ENTER": return False # use remote 'back' or 'end' key to close the keyboard
+            if key_val == "ENTER": return False # use remote 'back' or 'end' key to close the keyboard
             self._handle_input(key_val)
 
         return True
@@ -95,6 +97,7 @@ class OnScreenKeyboard:
         else:
             #char = key.upper() if self.is_shift else key.lower()
             self._insert_char(key)
+        return True    
 
     def _insert_char(self, char):
         # Insert at cursor position and advance cursor

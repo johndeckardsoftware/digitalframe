@@ -61,7 +61,7 @@ class DFItemModel:
             image_resize(image, df.width, df.height)
             if df.texture: df.texture = unload_texture(df.texture)
             df.texture = load_texture_from_image(image)
-            unload_image(image)
+            image = unload_image(image)
 
         clock.push_set_fps(self.fps)
 
@@ -125,8 +125,7 @@ class DFItemModel:
 
         if self.ftt > self.ttl or self._skip:
             clock.pop_set_fps()
-            unload_model(self.model)
-            self.model = None
+            self.model = unload_model(self.model)
             self._skip = False
             self.ftt = 0
             self.processed = False

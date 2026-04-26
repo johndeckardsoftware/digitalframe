@@ -114,7 +114,7 @@ class DFItemImage:
         matte_opacity = Config.get('items.types.image.matte.opacity', 16)
         image_draw(matte, _matte_, Rectangle(0, 0, df.width, df.height), Rectangle(0, 0, df.width, df.height), (255,255,255,matte_opacity))
 
-        unload_image(_matte_)
+        _matte_ = unload_image(_matte_)
 
         return matte
 
@@ -150,7 +150,7 @@ class DFItemImage:
                     image_draw(matte, border, Rectangle(0, 0, bw, bh), Rectangle(x-bt, y-bt, bw, bh), (255, 255, 255, self.border_opacity))
 
                 unload_image(image)
-                if border: unload_image(border)
+                if border: border = unload_image(border)
                 image = matte
             else:
                 imagep = load_image(self.pair.file)
@@ -174,7 +174,7 @@ class DFItemImage:
                     image_draw(matte, border, Rectangle(0, 0, bw, bh), Rectangle(lm+x+width+x-bt, y-bt, bw, bh), (255,255,255,self.border_opacity))
 
                 unload_image(image)
-                unload_image(imagep)
+                imagep = unload_image(imagep)
                 if border: unload_image(border)
                 image = matte
 
@@ -189,7 +189,7 @@ class DFItemImage:
 
         if df.texture: unload_texture(df.texture)
         df.texture = load_texture_from_image(image)
-        unload_image(image)
+        image = unload_image(image)
 
     def image_update(self):
         self.ftt += clock.rft

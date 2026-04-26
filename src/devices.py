@@ -80,6 +80,8 @@ class Devices:
         self.show4 = self.df.dttls.show4
         # menu and osk
         self.menu = OnScreenMenu(digitalframe, self)
+        # plugins
+        self.plugins = None
 
     def get_status(self):
         if self.boxput:
@@ -115,6 +117,10 @@ class Devices:
         df = self.df
         if self.menu.is_active and not self.menu.in_action:
             self.menu.update(key)
+            return
+
+        if self.plugins.active:
+            self.plugins.keyboard(key)
             return
 
         if (is_key_down(KeyboardKey.KEY_LEFT_CONTROL) or is_key_down(KeyboardKey.KEY_RIGHT_CONTROL) or vctrl):
@@ -289,18 +295,6 @@ class Devices:
             df.items.shuffle = not df.items.shuffle
             self.show3(f"shuffle {'on' if df.items.shuffle else 'off'}")
             df.items.set_shuffle(df.items.shuffle)
-
-        elif key == KeyboardKey.KEY_W:
-            import weather
-            if df.show_overlay:
-                df.show_overlay= False
-                if df.overlay:
-                    unload_texture(df.overlay)
-                    df.overlay = None
-            else:
-                df.overlay_file = os.path.join(Config.RESOURCES, "weather_dashboard.png")
-                weather.main(df.overlay_file)
-                df.show_overlay= True
 
     # menu update functions
     def set_folder(self, index):

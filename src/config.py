@@ -57,8 +57,11 @@ class Config:
     def save():
         with open(Config.config_file, "w", encoding="utf-8") as f:
             json_style = json.dumps(Config.config, indent=4)
-            compact_json = re.sub(r'\[\s+([^\]]+?)\s+\]',
-                      lambda m: "[" + re.sub(r'\s+', ' ', m.group(1)).strip() + "]", json_style)
+            compact_json = re.sub(
+                    r'\[(?![^\]]*\{)\s+([^\]]+?)\s+\]',
+                    lambda m: "[" + re.sub(r'\s+', ' ', m.group(1)).strip() + "]", 
+                    json_style
+                )
             f.write(compact_json)
 
     @staticmethod
@@ -163,6 +166,10 @@ def config_setup(create_md=False):
 
     try:
         exec(make_config)
+        plugins_config = os.path.join(Config.WORK_PATH, "src/plugins/plug_config.json")
+        if os.path.exists(plugins_config):
+            with open(plugins_config, "r", encoding="utf-8") as f: pc = json.load(f)
+            Config.set('plugins', pc)
         logger.info(f"{Config.config_file} created successfully ({len(full_call)} entries).")
     except Exception as e:
         logger.error(f"{make_config}\nExecution failed: {e}")

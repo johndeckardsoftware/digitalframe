@@ -1,22 +1,6 @@
-# Original source info:
-# Source - https://stackoverflow.com/a/19035508
-# Posted by Paulo Scardine, modified by community. See post 'Timeline' for change history
-# Retrieved 2026-03-05, License - CC BY-SA 4.0
-
-#-------------------------------------------------------------------------------
-# Name:        get_image_size
-# Purpose:     extract image dimensions given a file path using just
-#              core modules
-#
-# Author:      Paulo Scardine (based on code from Emmanuel VAÏSSE)
-#
-# Created:     26/09/2013
-# Copyright:   (c) Paulo Scardine 2013
-# Licence:     MIT
-#-------------------------------------------------------------------------------
-#!/usr/bin/env python
 import os, struct
 import exifread
+from pyray import image_resize
 
 def fast_image_info(file_path, logger):
     height = width = -1
@@ -69,3 +53,24 @@ def fast_image_info(file_path, logger):
         logger.error(f"fast_image_info: ({file_path}) {e}")
 
     return width, height, tags
+
+def resize_to_percentage(image, screen_width, screen_height, percentage):
+    orig_w = image.width
+    orig_h = image.height
+
+    if percentage == 100 and orig_w == screen_width: return
+
+    # Calculate target constraints
+    target_w = screen_width * (percentage / 100)
+    target_h = screen_height * (percentage / 100)
+
+    # Determine the scaling factor (the "limiting" side)
+    # This formula ensures the image stays within bounds while keeping ratio
+    ratio = min(target_w / orig_w, target_h / orig_h)
+
+    # Calculate new dimensions
+    new_w = int(orig_w * ratio)
+    new_h = int(orig_h * ratio)
+
+    # Resize and return
+    image_resize(image, new_w, new_h)

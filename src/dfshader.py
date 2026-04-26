@@ -76,7 +76,7 @@ class ShaderWrapper:
         end_shader_mode()
 
     def unload(self):
-        unload_shader(self.shader)
+        self.shader = unload_shader(self.shader)
 
     def config_get(self, key, default=None):
         return self.config.get(key, default)

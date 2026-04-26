@@ -128,7 +128,7 @@ class DFItemVideo:
             image = load_image(texture_file)
             image_resize(image, self.df.width, self.df.height)
             self.background = load_texture_from_image(image)
-            unload_image(image)
+            image = unload_image(image)
 
             # time
             self.fps = self.video.get(cv2.CAP_PROP_FPS)
@@ -198,14 +198,11 @@ class DFItemVideo:
 
     def video_close(self):
         if self.video:
-            self.video.release()
-            self.video = None
+            self.video = self.video.release()
         if self.sound:
-            unload_music_stream(self.sound)
-            self.sound = None
+            self.sound = unload_music_stream(self.sound)
         if self.background:
-            unload_texture(self.background)
-            self.background = None
+            self.background = unload_texture(self.background)
             self.draw_background = True
 
     def show_tags(self):

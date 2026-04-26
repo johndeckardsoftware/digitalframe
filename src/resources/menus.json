@@ -17,6 +17,7 @@
         {"g": "f'Toogle shuffle ({self.on_off(self.df.items.get_shuffle())})'", "k": "KEY_S"},
         {"t": "Item info (exif)", "k": null, "m": "meta"},
         {"t": "Toogle Clock", "k": "KEY_C"},
+        {"t": "Plugins", "m": "plugins"},
         {"t": "More Tools", "k": null, "m": "debug" }
     ],
     "menu_sel": 0,
@@ -56,5 +57,9 @@
         {"t": "Close digitalframe", "k": "CTRL+KEY_E"},
         {"t": "Back", "back": true, "m": "menu"}
     ],
-    "debug_sel": 0
+    "debug_sel": 0,
+    "plugins": [
+        {"t": "Back", "back": true, "m": "menu"}
+    ],
+    "plugins_sel": 0
 }

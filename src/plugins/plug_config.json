@@ -1,0 +1,60 @@
+[
+    {
+        "enabled": true,
+        "name": "HelloWorld",
+        "module": "plugins.hello",
+        "class": "HelloWorldPlugin",
+        "menu": [
+            {
+                "g": "f'Toogle HelloWorld ({self.on_off(@active)})'",
+                "f": "@toogle_active()"
+            }
+        ],
+        "settings": {
+            "start_y": 0,
+            "increment": -1
+        }
+    },
+    {
+        "enabled": true,
+        "name": "Weather",
+        "module": "plugins.weather2",
+        "class": "WeatherPlugin",
+        "menu": [
+            {
+                "g": "f'Toogle Weather ({self.on_off(@active)})'",
+                "f": "@toogle_active()"
+            },
+            {
+                "e": "f'Set Weather mode < ({@mode}) >'",
+                "fl": "@get_next_mode(-1)",
+                "fr": "@get_next_mode(1)"
+            }
+        ],
+        "settings": {
+            "authorize": "test",
+            "device_id": "test",
+            "mode": "month",
+            "dashboard": "src/resources/weather_dashboard.png"
+        }
+    },
+    {
+        "enabled": true,
+        "name": "Teletext",
+        "module": "plugins.teletext",
+        "class": "TeletextPlugin",
+        "menu": [
+            {
+                "g": "f'Toogle Teletext ({self.on_off(@active)})'",
+                "f": "@toogle_active()"
+            }
+        ],
+        "settings": {
+            "url": "https://www.televideo.rai.it/televideo/pub/tt4web/Nazionale/",
+            "cache_expire": 60,
+            "cache_file": "~/teletext/teletext.json",
+            "cache_path": "~/teletext",
+            "zoom": 60
+        }
+    }
+]

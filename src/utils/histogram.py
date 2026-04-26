@@ -34,7 +34,7 @@ class Histogram:
             else:
                 self.k_col = self.get_df_means(image2)
 
-        unload_image(image2)
+        image2 = unload_image(image2)
 
     def create_histogram(self, image):
         # --- channels histogram calculation ---
@@ -50,7 +50,7 @@ class Histogram:
             self.histogram_b[pixels[i].b] += 1
             i += 1
 
-        unload_image_colors(pixels)
+        pixels = unload_image_colors(pixels)
 
     def get_histogram_dominat_color(self):
         r = g = b = 0
@@ -102,53 +102,53 @@ class Histogram:
     def get_k_means(self, img, k=3, iterations=5):
         # 1. Load the image
         image_format(img, PixelFormat.PIXELFORMAT_UNCOMPRESSED_R8G8B8A8)
-        
+
         # Get the colors (pixels) as an array of Color structures
         pixels = load_image_colors(img)
         pixel_count = img.width * img.height
-        
+
         # Initialization: Choose K random centroids from existing pixels
         centroids = []
         for _ in range(k):
             p = pixels[random.randint(0, pixel_count - 1)]
             centroids.append([float(p.r), float(p.g), float(p.b)])
-        
+
         for _ in range(iterations):
             # Lists to accumulate the colors assigned to each centroid
             clusters = [[] for _ in range(k)]
-            
+
             # Assignment: Each pixel goes to the closest centroid
             # (To optimize, we sample 1 in 10 pixels for large images.)
             for i in range(0, pixel_count, 1):
                 p = pixels[i]
                 best_dist = float('inf')
                 best_idx = 0
-                
+
                 for idx, c in enumerate(centroids):
                     # RGB Euclidean distance
                     dist = math.sqrt((p.r - c[0])**2 + (p.g - c[1])**2 + (p.b - c[2])**2)
                     if dist < best_dist:
                         best_dist = dist
                         best_idx = idx
-                
+
                 clusters[best_idx].append([p.r, p.g, p.b])
-            
+
             # Update: Recalculate the centroids as the average of the colors in the cluster
             for i in range(k):
                 if not clusters[i]: continue
-                
+
                 avg_r = sum(p[0] for p in clusters[i]) / len(clusters[i])
                 avg_g = sum(p[1] for p in clusters[i]) / len(clusters[i])
                 avg_b = sum(p[2] for p in clusters[i]) / len(clusters[i])
                 centroids[i] = [avg_r, avg_g, avg_b]
-                
+
         # Memory cleaning
-        unload_image_colors(pixels)
-        
+        pixels = unload_image_colors(pixels)
+
         # Return dominant colors as Raylib Color objects
         return [Color(int(c[0]), int(c[1]), int(c[2]), 255) for c in centroids]
 
-    def split_rbg(self, rgb):        
+    def split_rbg(self, rgb):
         if Config.get('items.types.image.matte.complement', False):
             return Color(255 - (rgb >> 16), 255 - (rgb >> 8 & 0xff), 255 - (rgb & 0xff), 255)
         else:

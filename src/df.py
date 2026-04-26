@@ -10,11 +10,13 @@ from utils.folderwatch import FolderWatch
 from utils.display import hdmi_set_on, hdmi_set_off, hdmi_is_connected
 from utils.lux2brightness import convert_lux_to_range, get_gauss_hour
 from utils.raspberry import is_raspberry_pi, set_autohide_and_notification
+from utils.image import resize_to_percentage
 from dfshader import create_shader
 from dfitems import DFItemList
 from dftext import DrawTextTTLList, dftext, update_dftext_vars
 from devices import Devices
 from mqtt import MQTT
+from plugin_manager import PluginManager
 
 class DigitalFrame:
     def __init__(self, fullscreen=None):
@@ -90,6 +92,8 @@ class DigitalFrame:
         self.devices = Devices(self)
         self.mqtt = None
         self._publish_state = None
+        # plugins
+        self.plugins = None
         # sound
         self.sound_enabled = Config.get('items.types.video.sound', False)
         # work handles
@@ -115,6 +119,7 @@ class DigitalFrame:
         self.devices.menu.set_style_size(self.scale)
         self.devices.menu.osk.set_style_size(self.scale)
         update_dftext_vars()
+        if self.help: self.help = unload_texture(self.help)
         if self.item and self.item.type == ItemType.IMAGE:
             self.item.processed = False
 
@@ -155,6 +160,10 @@ class DigitalFrame:
         self.on_platform_set()
         FolderWatch(self.items)
 
+        if plugins := Config.get('plugins', None):
+            self.plugins = PluginManager(self, plugins)
+            self.devices.plugins = self.plugins
+
         if self.fullscreen: set_window_state(ConfigFlags.FLAG_WINDOW_UNDECORATED|ConfigFlags.FLAG_WINDOW_TOPMOST)
         else: set_window_state(ConfigFlags.FLAG_WINDOW_RESIZABLE)
         init_window(self.width, self.height, "DigitalFrame v1.0")
@@ -166,9 +175,7 @@ class DigitalFrame:
             self.height = get_monitor_height(self.monitor)
             Config.set('window.max_height', self.height)
 
-        icon = load_image(os.path.join(Config.RESOURCES,"icon.png"))
-        set_window_icon(icon)
-        unload_image(icon)
+        self.load_icon()
 
         self.font = load_font(os.path.join(Config.RESOURCES, Config.get('window.font', "LiberationMono-Regular.ttf")))
 
@@ -190,6 +197,9 @@ class DigitalFrame:
 
             if not self.paused and self.items.count():
                 self.item_process()
+
+            if self.plugins:
+                self.plugins.update_all()
 
             self.shader.update()
 
@@ -217,8 +227,8 @@ class DigitalFrame:
             if self.show_remote_help:
                 self.draw_remote_help()
 
-            if self.show_overlay:
-                self.draw_overlay()
+            if self.plugins:
+                self.plugins.draw_all()
 
             if self.devices.menu.is_active:
                 self.devices.menu.draw()
@@ -343,45 +353,11 @@ motion={self.motion}, {self.debug}"
     def draw_remote_help(self):
         if not self.help:
             help = load_image(os.path.join(Config.RESOURCES, Config.get('boxput.help', "boxput.png")))
-            if help.height > self.height:
-                ratio = help.width / help.height
-                height = self.height - 32
-                width = int(ratio * height)
-                image_resize(help, width, height)
-                #if self.help: unload_texture(self.help)
+            resize_to_percentage(help, self.width, self.height, 60)
             self.help = load_texture_from_image(help)
-            unload_image(help)
+            help = unload_image(help)
 
         draw_texture(self.help, (self.width - self.help.width) // 2, (self.height - self.help.height) // 2, (255, 255, 255, 255))
-
-    def draw_overlay(self):
-        if not self.overlay:
-            over = load_image(self.overlay_file)
-            self.resize_to_percentage(over, self.width, self.height, 80)
-            if self.overlay: unload_texture(self.overlay)
-            self.overlay = load_texture_from_image(over)
-            unload_image(over)
-
-        draw_texture(self.overlay, (self.width - self.overlay.width) // 2, (self.height - self.overlay.height) // 2, self.overlay_tint)
-
-    def resize_to_percentage(self, image, screen_width, screen_height, percentage):
-        orig_w = image.width
-        orig_h = image.height
-
-        # Calculate target constraints
-        target_w = screen_width * (percentage / 100)
-        target_h = screen_height * (percentage / 100)
-
-        # Determine the scaling factor (the "limiting" side)
-        # This formula ensures the image stays within bounds while keeping ratio
-        ratio = min(target_w / orig_w, target_h / orig_h)
-
-        # Calculate new dimensions
-        new_w = int(orig_w * ratio)
-        new_h = int(orig_h * ratio)
-
-        # Resize and return
-        image_resize(image, new_w, new_h)
 
     def on_platform_set(self):
         if self.platform == "windows":
@@ -391,16 +367,21 @@ motion={self.motion}, {self.debug}"
         else:
             self.hdmi_power = 4
 
+    def load_icon(self):
+        icon = load_image(os.path.join(Config.RESOURCES, "icon.png"))
+        set_window_icon(icon)
+        icon = unload_image(icon)
+
     def stop(self):
         try:
             self.logger.info(f"start stopping...")
             self.keep_looping = False
             if self.item: self.item.close()
-            if self.shader: self.shader.unload()
-            if self.texture: unload_texture(self.texture)
-            if self.matte: unload_texture(self.matte)
-            if self.border: unload_texture(self.border)
-            if self.help: unload_texture(self.help)
+            if self.shader: self.shader = self.shader.unload()
+            if self.texture: self.texture = unload_texture(self.texture)
+            if self.matte: self.matte = unload_texture(self.matte)
+            if self.border: self.border = unload_texture(self.border)
+            if self.help: self.help = unload_texture(self.help)
             pos = get_window_position()
             Config.set('window.x', int(pos.x))
             Config.set('window.y', int(pos.y))
@@ -437,7 +418,7 @@ def ask_item_path():
     return path
 
 def main(args):
-    try:
+    #try:
         logging.basicConfig(filename=args.log_file, filemode='a', format="%(asctime)s %(levelname)s %(module)s %(lineno)s: %(message)s", level=logging.INFO)
         #logging.basicConfig(stream=sys.stdout, level=logging.INFO)
         logger = logging.getLogger(__name__)
@@ -457,9 +438,9 @@ def main(args):
             return ret
         else:
             return 128
-    except Exception as e:
-        logger.error(traceback.format_exc())
-        return 129
+    #except Exception as e:
+    #    logger.error(traceback.format_exc())
+    #    return 129
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='digitalframe 1.0')

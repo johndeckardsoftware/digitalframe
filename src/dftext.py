@@ -99,15 +99,16 @@ def update_dftext_vars():
     col = 0
 
 def col2x(c, tl, cw, fs):
-    global col, col_width, col_max
+    global col, col_width, col_max, width
+    cm = col_max
     if cw == 0: cw = col_width
-    if fs < 0: fs *= -1; cw = fs
+    if fs < 0: fs *= -1; cw = fs; cm = width // cw 
     if c == None: c = col
     if type(c) is str:
         if c == 'C':
-            x = (col_max - tl) // 2 * cw
+            x = (cm - tl) // 2 * cw
         elif c == 'R':
-            x = (col_max - tl) * cw
+            x = (cm - tl) * cw
         else: # default 'L'
             x = 0
     else:
@@ -118,19 +119,20 @@ def col2x(c, tl, cw, fs):
             x = width + ((c - tl) * cw)
             if x < 0: x = 0
     col += tl
-    if col > col_max: col = 0
+    if col > cm: col = 0
     return x
 
 def row2y(r, rh, fs):
-    global row, row_height, max_row
+    global row, row_height, row_max, height
+    rm = row_max
     if rh == 0: rh = row_height
-    if fs < 0: fs *= -1; rh = fs
+    if fs < 0: fs *= -1; rh = fs; rm = height // rh
     if r == None: r = row
     if type(r) is str:
         if r == 'C':
-            y = row_max // 2 * rh
+            y = rm // 2 * rh
         elif r == 'B':
-            y = col_max * rh
+            y = rm * rh
         else: # default 'T'
             y = 0
     else:
@@ -141,7 +143,7 @@ def row2y(r, rh, fs):
             y = height + (r * rh)
             if y < 0: y = 0
     row += 1
-    if row > row_max: row = 0
+    if row > rm: row = 0
     return y
 
 def dftext(text, row=None, col=None, rh=0, cw=0, font=None, fs=16, spacing=1, tint=(255,255,255,255), shadow=0):

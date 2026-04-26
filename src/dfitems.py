@@ -57,14 +57,14 @@ class DFItemList:
             self.df.logger.error(self.df.error)
             return
 
-        # set vertical pair (image items)
+        # set vertical pair
         for i in self.items:
             x = i.name.find('+')
             if x >= 0:
                 if i.type == ItemType.IMAGE:
-                    pair = i.name[x+1:]
+                    pair_name = i.name[x+1:]
                     for j in self.items:
-                        if j != i and j.name == pair:
+                        if j != i and j.name == pair_name and not j.paired:
                             i.pair = j
                             j.paired = True
                             break
