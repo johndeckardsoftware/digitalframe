@@ -166,10 +166,11 @@ def config_setup(create_md=False):
 
     try:
         exec(make_config)
-        plugins_config = os.path.join(Config.WORK_PATH, "src/plugins/plug_config.json")
+        plugins_config = os.path.join(Config.WORK_PATH, "src/resources/plug_config.json")
         if os.path.exists(plugins_config):
             with open(plugins_config, "r", encoding="utf-8") as f: pc = json.load(f)
             Config.set('plugins', pc)
+            Config.save()
         logger.info(f"{Config.config_file} created successfully ({len(full_call)} entries).")
     except Exception as e:
         logger.error(f"{make_config}\nExecution failed: {e}")

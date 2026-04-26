@@ -1,6 +1,6 @@
 [
     {
-        "enabled": true,
+        "enabled": false,
         "name": "HelloWorld",
         "module": "plugins.hello",
         "class": "HelloWorldPlugin",
@@ -16,7 +16,7 @@
         }
     },
     {
-        "enabled": true,
+        "enabled": false,
         "name": "Weather",
         "module": "plugins.weather2",
         "class": "WeatherPlugin",
@@ -39,7 +39,7 @@
         }
     },
     {
-        "enabled": true,
+        "enabled": false,
         "name": "Teletext",
         "module": "plugins.teletext",
         "class": "TeletextPlugin",
