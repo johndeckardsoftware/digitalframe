@@ -18,9 +18,8 @@ from utils.image import resize_to_percentage
 from dftext import dftext
 
 class WeatherPlugin(PluginWrapper):
-    def __init__(self, digitalframe, config):
-        super().__init__(digitalframe, config)
-        self.active = False
+    def __init__(self, pm, config):
+        super().__init__(pm, config)
         self.last_update = 0.0
         self.authorize = self.config.get('authorize', "test")
         self.device_id = self.config.get('device_id', "test")

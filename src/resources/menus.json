@@ -1,8 +1,8 @@
 {
     "menu": [
         {"t": "Keyboard shortcut", "k": "KEY_F1"},
-        {"t": "Remote help", "k": "KEY_F2"},
-        {"t": "Pause", "k": "KEY_F3"},
+        {"t": "Toogle Remote help", "k": "KEY_F2"},
+        {"t": "Toogle Pause", "k": "KEY_F3"},
         {"t": "Previous", "k": "KEY_F4"},
         {"t": "Next", "k": "KEY_F5"},
         {"t": "Sleep", "k": "KEY_F7"},

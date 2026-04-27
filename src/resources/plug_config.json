@@ -43,6 +43,7 @@
         "name": "Teletext",
         "module": "plugins.teletext",
         "class": "TeletextPlugin",
+        "keyboard": true,
         "menu": [
             {
                 "g": "f'Toogle Teletext ({self.on_off(@active)})'",

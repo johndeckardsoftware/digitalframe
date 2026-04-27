@@ -11,6 +11,7 @@ class PluginManager:
         self.devices = digitalframe.devices
         self.config = config
         self.active = None
+        self.use_keyboard = False
         self.plugins = []
         self.load_plugins()
 
@@ -21,8 +22,9 @@ class PluginManager:
             try:
                 module = importlib.import_module(item['module'])
                 plugin_class = getattr(module, item['class'])
-                instance = plugin_class(self.df, item)
+                instance = plugin_class(self, item)
                 self.plugins.append(instance)
+                if item.get('keyboard', False): self.use_keyboard = True
 
                 # add plugin menu to global plugin menu
                 if plugins_menu := self.devices.menu.menus.get('plugins', None):
@@ -50,11 +52,9 @@ class PluginManager:
                 return plugin
 
     def keyboard(self, key):
-        if key == KeyboardKey.KEY_END or key == KeyboardKey.KEY_BACK:
-            self.active = None
-            return
-        else:
-            self.active.keyboard(key)
+        for plugin in self.plugins:
+            if plugin.use_keyboard:
+                plugin.keyboard(key)
 
     def update_all(self):
         for plugin in self.plugins:

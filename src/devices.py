@@ -119,9 +119,9 @@ class Devices:
             self.menu.update(key)
             return
 
-        if self.plugins.active:
+        if self.plugins.use_keyboard:
             self.plugins.keyboard(key)
-            return
+            #return
 
         if (is_key_down(KeyboardKey.KEY_LEFT_CONTROL) or is_key_down(KeyboardKey.KEY_RIGHT_CONTROL) or vctrl):
             if key == KeyboardKey.KEY_M:

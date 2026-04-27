@@ -3,8 +3,8 @@ from plugin import PluginWrapper
 from dftext import dftext, col_max
 
 class HelloWorldPlugin(PluginWrapper):
-    def __init__(self, digitalframe, config):
-        super().__init__(digitalframe, config)
+    def __init__(self, pm, config):
+        super().__init__(pm, config)
         self.y = self.config.get('start_y', 0)
         self.increment = self.config.get('increment', -1)
 

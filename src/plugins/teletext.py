@@ -10,8 +10,8 @@ from osk import OnScreenKeyboard
 import clock
 
 class TeletextPlugin(PluginWrapper):
-    def __init__(self, digitalframe, config):
-        super().__init__(digitalframe, config)
+    def __init__(self, pm, config):
+        super().__init__(pm, config)
         self.base_url = self.config.get('url', "https://www.televideo.rai.it/televideo/pub/tt4web/Nazionale/")
         self.cache = None  # {page: True/False}
         self.cache_expire = self.config.get('cache_expire', 120)
@@ -36,6 +36,7 @@ class TeletextPlugin(PluginWrapper):
         self.load_cache()
 
     def keyboard(self, key):
+        if not self.active: return
         if self.in_osk:
             self.in_osk = self.osk.update(key)
             if not self.in_osk: # input ended
@@ -53,6 +54,7 @@ class TeletextPlugin(PluginWrapper):
 
     def update(self):
         if not self.active: return
+        self.pm.request_key = True
         if self.is_running: return
         try:
             self.start_download_thread(100, 899)
