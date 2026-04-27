@@ -43,6 +43,7 @@ class DFItemList:
         self.folders.clear()
         self.items.clear()
         for path in self.paths:
+            path = os.path.normpath(path)
             if os.path.exists(path):
                 self.list_files(path)
             else:

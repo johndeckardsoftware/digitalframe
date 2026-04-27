@@ -49,6 +49,7 @@ class DigitalFrame:
         self.dttls = DrawTextTTLList(self)
         # items list
         self.error = None
+
         self.items = DFItemList(self, Config.get('items.path', ['/path/to/items']))
         # MyHome / Home Assistant control
         self.hdmi_power = Config.get('window.hdmi_power', 2) # 3 for windows
@@ -418,7 +419,7 @@ def ask_item_path():
     return path
 
 def main(args):
-    #try:
+    try:
         logging.basicConfig(filename=args.log_file, filemode='a', format="%(asctime)s %(levelname)s %(module)s %(lineno)s: %(message)s", level=logging.INFO)
         #logging.basicConfig(stream=sys.stdout, level=logging.INFO)
         logger = logging.getLogger(__name__)
@@ -438,9 +439,9 @@ def main(args):
             return ret
         else:
             return 128
-    #except Exception as e:
-    #    logger.error(traceback.format_exc())
-    #    return 129
+    except Exception as e:
+        logger.error(traceback.format_exc())
+        return 129
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='digitalframe 1.0')

@@ -65,7 +65,7 @@ class TeletextPlugin(PluginWrapper):
             self.osk.draw()
             if self.ftt > self.ttl:
                 page_file = self.get_page(0, 1)
-                if not page_file: return
+                if not page_file or not os.path.exists(page_file): return
 
                 self.ftt = 0
                 page = load_image(page_file)

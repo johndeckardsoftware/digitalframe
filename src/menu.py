@@ -148,7 +148,7 @@ class OnScreenMenu:
         draw_rectangle(0, 0, get_screen_width(), get_screen_height(), fade(BLACK, 0.5))
 
         # Draw Menu Box
-        menu_w = self.menus.get(f'{self.current}_width', 800)
+        menu_w = int(self.menus.get(f'{self.current}_width', 800) * self.df.scale)
         menu_h = self.back_h * len(self.options) + self.back_b * 2
         start_x = (get_screen_width() - menu_w) // 2
         start_y = (get_screen_height() - menu_h) // 2
