@@ -8,3 +8,5 @@ opencv-python
 pygltflib
 schedule
 ffmpeg-python
+pillow
+pillow_heif

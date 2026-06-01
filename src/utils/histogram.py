@@ -16,7 +16,9 @@ class Histogram:
         self.scale = 10             # work on a scaled image
         self.matte_enabled = Config.get('items.types.image.matte.enabled', True)
         self.k_means = Config.get('items.types.image.matte.kmeans', False)
-        self.k_num = Config.get('items.types.image.matte.knum', 3)
+        self.k_num = Config.get('items.types.image.matte.knum', 2)
+        self.k_iter = Config.get('items.types.image.matte.kiter', 5)
+        self.k_rnd = Config.get('items.types.image.matte.krnd', True)
         self.k_col = [Color(0,0,0,255), Color(255,255,255,255), Color(128,128,128,255)]
         self.process(image)
 
@@ -30,7 +32,7 @@ class Histogram:
 
         if self.matte_enabled:
             if self.k_means:
-                self.k_col = self.get_k_means(image2, k=self.k_num)
+                self.k_col = self.get_k_means(image2, k=self.k_num, iterations=self.k_iter)
             else:
                 self.k_col = self.get_df_means(image2)
 
@@ -97,9 +99,9 @@ class Histogram:
                         count[rgb] = 1
 
         ls = sorted(count.items(), reverse=True, key=lambda x: x[1])
-        return [self.split_rbg(ls[0][0]), self.split_rbg(ls[1][0]), self.split_rbg(ls[2][0])]
+        return [self.split_rbg(ls[i][0]) for i in range(self.k_num)]
 
-    def get_k_means(self, img, k=3, iterations=5):
+    def get_k_means(self, img, k=3, iterations=9):
         # 1. Load the image
         image_format(img, PixelFormat.PIXELFORMAT_UNCOMPRESSED_R8G8B8A8)
 
@@ -155,8 +157,7 @@ class Histogram:
             return Color(rgb >> 16, rgb >> 8 & 0xff, rgb & 0xff, 255)
 
     def get_mat_color(self):
-        #i = random.randint(0, 2)
-        i = 0
+        i = random.randint(0, self.k_num-1) if self.k_rnd else 0
         return (self.k_col[i].r, self.k_col[i].g, self.k_col[i].b, self.k_col[i].a)
 
     def kernel_convolution(self, image, kernel_matrix=None):
@@ -186,6 +187,10 @@ class Histogram:
             255 - color.b,
             color.a
         )
+
+    def draw_(self):
+        for i in range(self.k_num):
+            draw_rectangle(10+(i*50), 10, 40, 40, (self.k_col[i].r, self.k_col[i].g, self.k_col[i].b, self.k_col[i].a))
 
     def draw(self):
         hist_x = 80

@@ -1,53 +1,36 @@
-import os, struct
+import io
 import exifread
-from pyray import image_resize
+from pyray import load_image, image_resize, image_copy, ffi, Image
+from PIL import Image as PILImage
+import pillow_heif
+pillow_heif.register_heif_opener()
 
 def fast_image_info(file_path, logger):
-    height = width = -1
+    width = height = -1
     tags = None
+
     try:
-        size = os.path.getsize(file_path)
+        # Open the image lazily (Pillow reads headers, but does NOT decode pixels yet)
+        with PILImage.open(file_path) as img:
+            width, height = img.size
 
-        with open(file_path, mode="rb") as input:
-            data = input.read(25)
+            # Extract raw EXIF bytes if they exist
+            # Pillow stores this in img.info for HEIF and img.getexif() normally
+            exif_bytes = img.info.get("exif")
 
-            if size >= 10 and data[:6] in ('GIF87a', 'GIF89a'):
-                # GIFs
-                w, h = struct.unpack("<HH", data[6:10])
-                width = int(w)
-                height = int(h)
-            elif (size >= 24 and data.startswith(b'\211PNG\r\n\032\n')
-                and data[12:16] == b'IHDR'):
-                # PNGs
-                w, h = struct.unpack(">LL", data[16:24])
-                width = int(w)
-                height = int(h)
-            elif size >= 16 and data.startswith(b'\211PNG\r\n\032\n'):
-                # older PNGs?
-                w, h = struct.unpack(">LL", data[8:16])
-                width = int(w)
-                height = int(h)
-            elif (size >= 2) and data.startswith(b'\377\330'):
-                # JPEG
-                input.seek(0)
-                input.read(2)
-                b = input.read(1)
-                while (b and ord(b) != 0xDA):
-                    while (ord(b) != 0xFF): b = input.read(1)
-                    while (ord(b) == 0xFF): b = input.read(1)
-                    if (ord(b) >= 0xC0 and ord(b) <= 0xC3):
-                        input.read(3)
-                        h, w = struct.unpack(">HH", input.read(4))
-                        break
-                    else:
-                        input.read(int(struct.unpack(">H", input.read(2))[0])-2)
-                    b = input.read(1)
-                width = int(w)
-                height = int(h)
+            if exif_bytes:
+                # If the bytes contain the "Exif\x00\x00" header prefix, strip it for exifread
+                if exif_bytes.startswith(b"Exif\x00\x00"):
+                    exif_bytes = exif_bytes[6:]
 
-                # get metadata
-                input.seek(0)
-                tags = exifread.process_file(input, details=False, builtin_types=True, extract_thumbnail=False)
+                # Wrap bytes in a stream so exifread can process it like a file
+                exif_stream = io.BytesIO(exif_bytes)
+                tags = exifread.process_file(
+                    exif_stream,
+                    details=False,
+                    builtin_types=True,
+                    extract_thumbnail=False
+                )
 
     except Exception as e:
         logger.error(f"fast_image_info: ({file_path}) {e}")
@@ -74,3 +57,35 @@ def resize_to_percentage(image, screen_width, screen_height, percentage):
 
     # Resize and return
     image_resize(image, new_w, new_h)
+
+def df_load_image(file, logger):
+    if file.lower().endswith((".heif", ".heic")):
+        try:
+            # Open the image with Pillow
+            with PILImage.open(file) as pil_img:
+                # Ensure the image is in RGBA format for Raylib compatibility
+                if pil_img.mode != "RGBA":
+                    pil_img = pil_img.convert("RGBA")
+
+                width, height = pil_img.size
+
+                # Extract raw image bytes
+                raw_bytes = pil_img.tobytes("raw", "RGBA")
+
+                # Create temporary views of the memory
+                pixels_raw = ffi.from_buffer("unsigned char *", raw_bytes)
+                pixels_ptr = ffi.cast("void *", pixels_raw)
+
+                # Create a temporary local image structure pointing to Python's buffer
+                # Format 7 corresponds to PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
+                temp_image = Image(pixels_ptr, width, height, 1, 7)
+
+                # ImageCopy deep-copies the pixel data onto Raylib's C-heap.
+                # Now Raylib completely owns this memory, and Python's buffer can safely die.
+                return image_copy(temp_image)
+
+        except Exception as e:
+            logger.error(f"Error loading HEIF image '{file}': {e}")
+            return None
+    else:
+        return load_image(file)

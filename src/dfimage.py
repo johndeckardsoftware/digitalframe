@@ -3,7 +3,7 @@ from pyray import *
 import clock
 from config import Config, ItemType
 from utils.histogram import Histogram
-from utils.image import fast_image_info
+from utils.image import fast_image_info, df_load_image
 from dftext import dftext
 
 class DFItemImage:
@@ -120,7 +120,7 @@ class DFItemImage:
 
     def image_process(self):
         df = self.df
-        image = load_image(self.file)
+        image = df_load_image(self.file, self.df.logger)
 
         if not self.histogram:
             self.histogram = Histogram(self.name, image)
@@ -153,7 +153,7 @@ class DFItemImage:
                 if border: border = unload_image(border)
                 image = matte
             else:
-                imagep = load_image(self.pair.file)
+                imagep = df_load_image(self.pair.file, self.df.logger)
                 top_margin = df.height * Config.get('items.types.image.matte.top_margin', 5) // 100
                 left_margin = df.width * Config.get('items.types.image.matte.left_margin', 5) // 100
                 height = df.height - top_margin
