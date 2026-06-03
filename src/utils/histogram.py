@@ -2,6 +2,7 @@ from array import array
 import random, math
 from config import Config
 from pyray import *
+import colorsys
 
 class Histogram:
     def __init__(self, name, image):
@@ -19,6 +20,9 @@ class Histogram:
         self.k_num = Config.get('items.types.image.matte.knum', 2)
         self.k_iter = Config.get('items.types.image.matte.kiter', 5)
         self.k_rnd = Config.get('items.types.image.matte.krnd', True)
+        self.k_shade = Config.get('items.types.image.matte.shade', True)
+        self.k_shade_factor = Config.get('items.types.image.matte.sfactor', -0.3)
+        self.k_complementary = Config.get('items.types.image.matte.complementary', False)
         self.k_col = [Color(0,0,0,255), Color(255,255,255,255), Color(128,128,128,255)]
         self.process(image)
 
@@ -158,7 +162,15 @@ class Histogram:
 
     def get_mat_color(self):
         i = random.randint(0, self.k_num-1) if self.k_rnd else 0
-        return (self.k_col[i].r, self.k_col[i].g, self.k_col[i].b, self.k_col[i].a)
+        if self.k_complementary:
+            c = self.get_complementary_color(self.k_col[i].r, self.k_col[i].g, self.k_col[i].b)
+        else:
+            c = self.k_col[i]
+        
+        if self.k_shade:
+            c = self.get_shade_color(c.r, c.g, c.b, self.k_shade_factor)
+
+        return (c.r, c.g, c.b, c.a)
 
     def kernel_convolution(self, image, kernel_matrix=None):
         if not kernel_matrix:
@@ -180,7 +192,7 @@ class Histogram:
         # Nota: la funzione modifica direttamente l'oggetto 'image'
         image_kernel_convolution(image, ffi.cast("float *", kernel), len(kernel_matrix))
 
-    def get_complementary_color(color):
+    def get_complementary_color_(self, color):
         return Color(
             255 - color.r,
             255 - color.g,
@@ -188,9 +200,72 @@ class Histogram:
             color.a
         )
 
+    def get_complementary_color(self, r, g, b):
+        """Calcola il colore complementare (opposto) di un colore RGB (0-255)."""
+        # 1. Normalizza i valori RGB nell'intervallo [0.0, 1.0]
+        r_norm, g_norm, b_norm = r / 255.0, g / 255.0, b / 255.0
+
+        # 2. Converti da RGB a HSV
+        h, s, v = colorsys.rgb_to_hsv(r_norm, g_norm, b_norm)
+
+        # 3. Ruota la tonalità (Hue) di 180 gradi (ovvero di 0.5 in base 1.0)
+        # Usiamo il modulo 1.0 per far riniziare il cerchio se superiamo il valore massimo
+        h_opposto = (h + 0.5) % 1.0
+
+        # 4. Riconverti da HSV a RGB
+        r_opp_norm, g_opp_norm, b_opp_norm = colorsys.hsv_to_rgb(h_opposto, s, v)
+
+        # 5. Riporta i valori nell'intervallo [0, 255] e arrotonda
+        r_opp = round(r_opp_norm * 255)
+        g_opp = round(g_opp_norm * 255)
+        b_opp = round(b_opp_norm * 255)
+
+        return Color(r_opp, g_opp, b_opp, 255)
+
+    def get_shade_color(self, r, g, b, factor):
+        """Generates a shade or tint of an RGB color by modifying its lightness.
+
+        Factor > 0: Lightens the color (Tint) -> moves toward white.
+        Factor < 0: Darkens the color (Shade) -> moves toward black.
+        Factor range: -1.0 to 1.0 (e.g., 0.2 increases lightness by 20%)
+        """
+        # 1. Normalize RGB values to the [0.0, 1.0] range
+        r_norm, g_norm, b_norm = r / 255.0, g / 255.0, b / 255.0
+
+        # 2. Convert RGB to HLS (Hue, Lightness, Saturation)
+        h, l, s = colorsys.rgb_to_hls(r_norm, g_norm, b_norm)
+
+        # 3. Modify lightness (L) based on the factor
+        if factor > 0:
+            # Lighten: move linearly towards the maximum value (1.0)
+            new_l = l + (1.0 - l) * factor
+        else:
+            # Darken: move linearly towards the minimum value (0.0)
+            new_l = l + l * factor
+
+        # Clamp the value between 0.0 and 1.0 for safety
+        new_l = max(0.0, min(1.0, new_l))
+
+        # 4. Convert HLS back to RGB
+        new_r_norm, new_g_norm, new_b_norm = colorsys.hls_to_rgb(h, new_l, s)
+
+        # 5. Scale back to the [0, 255] range
+        return Color(
+            round(new_r_norm * 255),
+            round(new_g_norm * 255),
+            round(new_b_norm * 255),
+            255
+        )
+
     def draw_(self):
         for i in range(self.k_num):
             draw_rectangle(10+(i*50), 10, 40, 40, (self.k_col[i].r, self.k_col[i].g, self.k_col[i].b, self.k_col[i].a))
+
+        for i in range(self.k_num):
+            draw_rectangle(10+(i*50), 60, 40, 40, self.get_shade_color(self.k_col[i].r, self.k_col[i].g, self.k_col[i].b, -0.3))
+
+        for i in range(self.k_num):
+            draw_rectangle(10+(i*50), 110, 40, 40, self.get_complementary_color(self.k_col[i].r, self.k_col[i].g, self.k_col[i].b))
 
     def draw(self):
         hist_x = 80
