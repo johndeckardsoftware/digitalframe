@@ -253,7 +253,7 @@ class DFItemImage:
             code += "self.tags2text = f'" + Config.get('items.types.image.metadata_format', "") + "'"
             exec(code)
         except Exception as e:
-            self.df.logger.warning(f"{self.name=}{self.tags=}{code=}\n{e}")
+            self.df.logger.warning(f"{self.name=}, {self.tags=}, {code=}\n{e}")
         dftext(self.tags2text, -2, 2, fs=-28, tint=self.tags_color, shadow=2)
 
     def get_tag(self, tag):
