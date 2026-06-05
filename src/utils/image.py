@@ -7,7 +7,7 @@ pillow_heif.register_heif_opener()
 
 def fast_image_info(file_path, logger):
     width = height = -1
-    tags = None
+    tags = {}
 
     try:
         # Open the image lazily (Pillow reads headers, but does NOT decode pixels yet)
