@@ -49,4 +49,3 @@ This guide lists all the keyboard shortcuts available to control the Digitalfram
 | **CTRL + E** | Exit |
 | **CTRL + R** | Reboot |
 | **CTRL + P** | Shutdown |
-
