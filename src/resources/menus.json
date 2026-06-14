@@ -54,6 +54,7 @@
         {"t": "Show fps", "k": "CTRL+KEY_F"},
         {"t": "Toogle Fullscreen", "k": "KEY_F11"},
         {"t": "Private", "k": "KEY_F6"},
+        {"t": "Save configuration", "f": "Config.save()"},
         {"t": "Close digitalframe", "k": "CTRL+KEY_E"},
         {"t": "Back", "back": true, "m": "menu"}
     ],
