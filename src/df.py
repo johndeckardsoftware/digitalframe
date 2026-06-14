@@ -123,11 +123,13 @@ class DigitalFrame:
         if self.help: self.help = unload_texture(self.help)
         if self.item and self.item.type == ItemType.IMAGE:
             self.item.processed = False
+        self.logger.debug(f"update_window: {self.fullscreen=}, {self.width=}, {self.height=}")
 
     def set_full_screen(self):
         set_window_state(ConfigFlags.FLAG_WINDOW_UNDECORATED)
         set_window_position(0, 0)
         set_window_size(Config.get('window.max_width', 3840), Config.get('window.max_height', 2160))
+        self.logger.debug(f"set_full_screen: {get_screen_width()=}, {Config.get('window.max_width', 3840)}, {get_screen_height()=}, {Config.get('window.max_height', 2160)}")
 
     def toogle_window_size(self):
         if self.fullscreen:
@@ -175,6 +177,7 @@ class DigitalFrame:
             Config.set('window.max_width', self.width)
             self.height = get_monitor_height(self.monitor)
             Config.set('window.max_height', self.height)
+            self.logger.debug(f"get_monitor_width: {self.width}, get_monitor_height: {self.height}")
 
         self.load_icon()
 
@@ -301,6 +304,7 @@ class DigitalFrame:
 
     def set_lux_adj(self, value):
         self.lux_adj += value
+        Config.set('window.lux_adjustment', self.lux_adj)
         self.set_brightness(self.lux)
 
     def set_matting(self, value):
