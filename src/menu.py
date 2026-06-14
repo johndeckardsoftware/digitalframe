@@ -4,12 +4,14 @@ import clock
 from config import Config
 from osk import OnScreenKeyboard
 from dftext import dftext
-import utils.ddcutil as ddcutil
+import utils.ddcutil as ddcutil # used in exec
+
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
 
 class OnScreenMenu:
     def __init__(self, digitalframe, devices):
+        logger.setLevel(Config.get("window.log_level", logging.INFO))
+        #logger.setLevel(logging.DEBUG)
         self.df = digitalframe
         self.devices = devices
         # Style

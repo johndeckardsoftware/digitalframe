@@ -2,10 +2,11 @@ import time, threading, logging
 from config import Config
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
 
 class FanController():
     def __init__(self, controller):
+        logger.setLevel(Config.get("window.log_level", logging.INFO))
+        #logger.setLevel(logging.DEBUG)
         self.df = controller
         self.fan_thread = threading.Thread(target=self.handle_fan)
         self.fan_thread.start()

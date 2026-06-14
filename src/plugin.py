@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
+from config import Config
 
 class PluginWrapper(ABC):
     def __init__(self, pm, config):
@@ -10,6 +11,8 @@ class PluginWrapper(ABC):
         self.config = config.get('settings', {})
         self.active = False
         self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(Config.get("window.log_level", logging.INFO))
+        #self.logger.setLevel(logging.DEBUG)
 
     def toogle_active(self):
         self.active = not self.active

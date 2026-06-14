@@ -13,10 +13,11 @@ from utils.metrics import system_metrics, get_cpu_temp
 from utils.display import hdmi_toogle
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
 
 class Devices:
     def __init__(self, digitalframe):
+        logger.setLevel(Config.get("window.log_level", logging.INFO))
+        #logger.setLevel(logging.DEBUG)
         self.df = digitalframe
         if Config.get('cron.enabled', True):
             self.cron = Cron(digitalframe)
@@ -318,11 +319,13 @@ class Devices:
         df = self.df
         df.image_ttl += increment  # in seconds
         df.image_ttl = max(0, min(df.image_ttl, 300))
+        Config.set('items.types.image.ttl', df.image_ttl)
 
     def set_sleep(self, increment):
         df = self.df
         df.hdmi_off_timeout += increment  # in minutes
         df.hdmi_off_timeout = max(0, min(df.hdmi_off_timeout, 60))
+        Config.set('window.hdmi_off_timeout', df.hdmi_off_timeout)
 
     def set_increment(self, increment):
         self.inc_value += increment
@@ -348,11 +351,13 @@ class Devices:
     def set_monitor_brightness(self, sign):
         value = ("+" if sign > 0 else "-") + str(self.inc_value * abs(sign))
         ddcutil.set_vcp_value(ddcutil.BRIGHTNESS, value)
+        time.sleep(0.5)
         self.show3(f"brightness: {ddcutil.get_vcp_value(ddcutil.BRIGHTNESS)}")
 
     def set_monitor_contrast(self, sign):
         value = ("+" if sign > 0 else "-") + str(self.inc_value * abs(sign))
         ddcutil.set_vcp_value(ddcutil.CONTRAST, value)
+        time.sleep(0.5)
         self.show3(f"brightness: {ddcutil.get_vcp_value(ddcutil.CONTRAST)}")
 
     def load_help(self):
@@ -590,7 +595,7 @@ class Cron():
             result = subprocess.run(["ls", "/dev/input/by-id/"], capture_output=True, text=True)
             ret = result.stdout.find("-event-kbd")
             self.keyboard = ret != -1
-        logger.info(f"i'm alive...")
+        logger.debug(f"i'm alive...")
 
     def shuffle(self):
         if self.df.items.shuffle:

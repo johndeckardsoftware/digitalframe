@@ -3,10 +3,11 @@ from config import Config
 from pyray import KeyboardKey
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
 
 class BlueDotRemote():
     def __init__(self, controller, devices):
+        logger.setLevel(Config.get("window.log_level", logging.INFO))
+        #logger.setLevel(logging.DEBUG)
         self.df = controller
         self.devices = devices
         self.bluedot_thread = threading.Thread(target=self.handle_bluedot)

@@ -3,10 +3,11 @@ from pyray import *
 from config import Config
 
 logger = logging.getLogger(__name__)
-#logger.setLevel(logging.DEBUG)
 
 class OnScreenKeyboard:
     def __init__(self, devices, x=None, y=None, layout=None):
+        logger.setLevel(Config.get("window.log_level", logging.INFO))
+        #logger.setLevel(logging.DEBUG)
         self.devices = devices
         self.pos_x = x
         self.pos_y = y

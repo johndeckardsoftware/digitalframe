@@ -24,6 +24,7 @@ def myfloat(s):
 class MQTT:
     def __init__(self, digitalframe):
         self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(Config.get("window.log_level", logging.INFO))
         #self.logger.setLevel(logging.DEBUG)
         self.logger.debug("Creating an instance of MQTT")
         self.df = digitalframe
