@@ -10,3 +10,4 @@ schedule
 ffmpeg-python
 pillow
 pillow_heif
+monitorcontrol
