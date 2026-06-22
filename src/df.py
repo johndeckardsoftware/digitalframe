@@ -61,7 +61,7 @@ class DigitalFrame:
         self.paused = False
         # light
         self.lux = 0            # value from the sensor
-        self.lux_adj = Config.get('window.lux_adjustment', 50)
+        self.lux_adj = Config.get('window.lux_adjustment', 40)
         self.brightness = 0     # value in range -128 +128
         self.brightness_normalized = 0 # brightness normalized for the shader
         self.ambient_light = True # True to mimic ambient light
