@@ -72,7 +72,7 @@
 | items.types.image.matte.knum | `3` | knum |
 | items.types.image.matte.complement | `false` | complement: true: complement the color auomatically calculated |
 | items.types.image.metadata_format | `` | metadata_format |
-| items.types.image.ext | `[".jpg", ".jpeg"]` | ext |
+| items.types.image.ext | `[".jpg", ".jpeg", ".heic", ".heif", ".tif", ".tiff"]` | ext |
 | items.types.image.metadata.title.enabled | false | enable |
 | items.types.image.metadata.title.tag | `"Image ImageDescription"` | EXIF tag |
 | items.types.image.metadata.caption.enabled | false | enable |

@@ -59,7 +59,7 @@ def resize_to_percentage(image, screen_width, screen_height, percentage):
     image_resize(image, new_w, new_h)
 
 def df_load_image(file, logger):
-    if file.lower().endswith((".heif", ".heic")):
+    if file.lower().endswith((".heif", ".heic", ".tif", ".tiff")):
         try:
             # Open the image with Pillow
             with PILImage.open(file) as pil_img:

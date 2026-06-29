@@ -13,10 +13,10 @@ def get_seasonal_lux_average():
     # Winter: ~250, Spring/Fall: ~450, Summer: ~600
     # -100 for all months
     seasonal_averages = Config.get('window.light_average', {
-        12: 180, 1: 180, 2: 190,  # Winter
-        3: 200, 4: 200, 5: 200,   # Spring
-        6: 210, 7: 220, 8: 220,   # Summer
-        9: 210, 10: 200, 11: 190  # Fall
+        12: 200, 1: 220, 2: 240,  # Winter
+        3: 280, 4: 320, 5: 360,   # Spring
+        6: 390, 7: 380, 8: 360,   # Summer
+        9: 320, 10: 280, 11: 240  # Fall
     })
 
     return seasonal_averages.get(str(month), 400)
