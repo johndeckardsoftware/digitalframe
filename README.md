@@ -44,7 +44,7 @@ Simple digital frame application developed in Python using [raylib](https://elec
 ### **Software**
 
 * Python 3.9+  
-* Dependencies: raylib, watchdog, psutil, paho-mqtt, exifread, bluedot, evdev, opencv-python, pygltflib, schedule, ffmpeg-python (required ffmpeg install)
+* Dependencies: raylib, watchdog, psutil, paho-mqtt, exifread, bluedot, evdev, opencv-python, pygltflib, schedule, ffmpeg-python (require ffmpeg install), pillow, pillow_heif, monitorcontrol
 
 ## **🔧 Installation & Setup**
 
