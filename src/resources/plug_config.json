@@ -57,5 +57,21 @@
             "cache_path": "~/teletext",
             "zoom": 60
         }
+    },
+    {
+        "enabled": false,
+        "name": "TextEditor",
+        "module": "plugins.text_editor",
+        "class": "TextEditor",
+        "keyboard": true,
+        "menu": [
+            {
+                "g": "f'Config Editor ({self.on_off(@active)})'",
+                "f": "@toogle_active()"
+            }
+        ],
+        "settings": {
+            "file_path": "config.json"
+        }
     }
 ]
