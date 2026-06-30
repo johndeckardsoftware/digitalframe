@@ -81,6 +81,7 @@ The execution steps inside the lifecycle management script handle runtime config
 * `1`: Critical application logic error encountered.
 * `100`: Hardware system reboot command triggered.
 * `101`: Hardware system shutdown command triggered.
+* `102`: Close and reload application.
 * `> 127`: Fatal segmentation or process isolation faults.
 
 
