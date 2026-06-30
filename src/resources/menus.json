@@ -56,6 +56,11 @@
         {"t": "Private", "k": "KEY_F6"},
         {"t": "Save configuration", "f": "Config.save()"},
         {"t": "Close digitalframe", "k": "CTRL+KEY_E"},
+        {"t": "Close digitalframe without saving config", "f": "self.df.close(False)"},
+        {"t": "Reload digitalframe", "f": "self.df.reload()"},
+        {"t": "Reload digitalframe without saving config", "f": "self.df.reload(False)"},
+        {"t": "Reboot", "f": "self.df.reboot()"},
+        {"t": "Power down", "f": "self.df.power_down()"},
         {"t": "Back", "back": true, "m": "menu"}
     ],
     "debug_sel": 0,

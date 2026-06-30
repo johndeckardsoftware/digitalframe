@@ -39,6 +39,7 @@ class DigitalFrame:
         self.ratio = round(self.width / self.height, 2)
         self.scale_ref_width = Config.get('window.scale_ref_width', 1920)
         self.scale = (self.width / self.scale_ref_width)
+        self.on_exit_save_config = True
 
         # timing
         clock.fps = Config.get('window.fps', 1)
@@ -169,7 +170,7 @@ class DigitalFrame:
 
         if self.fullscreen: set_window_state(ConfigFlags.FLAG_WINDOW_UNDECORATED|ConfigFlags.FLAG_WINDOW_TOPMOST)
         else: set_window_state(ConfigFlags.FLAG_WINDOW_RESIZABLE)
-        init_window(self.width, self.height, "DigitalFrame v1.0")
+        init_window(self.width, self.height, "DigitalFrame v1.1")
         if self.fullscreen: disable_cursor()
         self.monitor = get_current_monitor()
         if self.fullscreen:
@@ -396,21 +397,30 @@ motion={self.motion}, {self.debug}"
                 self.devices.stop()
             if self.mqtt:
                 self.mqtt.stop()
-            Config.save()
+            if self.on_exit_save_config:
+                Config.save()
             self.logger.info("stopped.")
         except Exception as e:
             self.logger.error(e)
 
-    def close(self):
+    def close(self, save_config=True):
+        self.on_exit_save_config = save_config
         self.exit_code = 0
         self.keep_looping = False
 
-    def reboot(self):
+    def reboot(self, save_config=True):
+        self.on_exit_save_config = save_config
         self.exit_code = 100
         self.keep_looping = False
 
-    def power_down(self):
+    def power_down(self, save_config=True):
+        self.on_exit_save_config = save_config
         self.exit_code = 101
+        self.keep_looping = False
+
+    def reload(self, save_config=True):
+        self.on_exit_save_config = save_config
+        self.exit_code = 102
         self.keep_looping = False
 
 def ask_item_path():
