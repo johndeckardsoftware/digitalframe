@@ -171,6 +171,12 @@ def config_setup(create_md=False):
             with open(plugins_config, "r", encoding="utf-8") as f: pc = json.load(f)
             Config.set('plugins', pc)
             Config.save()
+        cloud_config = os.path.join(Config.WORK_PATH, "src/resources/cloud_config.json")
+        if os.path.exists(cloud_config):
+            with open(cloud_config, "r", encoding="utf-8") as f: cc = json.load(f)
+            Config.set('cloud', cc)
+            Config.save()
+
         logger.info(f"{Config.config_file} created successfully ({len(full_call)} entries).")
     except Exception as e:
         logger.error(f"{make_config}\nExecution failed: {e}")

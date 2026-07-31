@@ -1,0 +1,29 @@
+{
+    "enabled": false,
+    "sync_jobs": [
+        {
+            "enabled": false,
+            "name": "Google Drive DigitalFrame",
+            "provider_remote": "gdrive_df",
+            "remote_folder": "DigitalFrame",
+            "local_path": "/home/pi/Pictures",
+            "delete_extra_local_files": false
+        },
+        {
+            "enabled": false,
+            "name": "OneDrive DigitalFrame",
+            "provider_remote": "onedrive_df",
+            "remote_folder": "DigitalFrame",
+            "local_path": "/home/pi/Pictures",
+            "delete_extra_local_files": false
+        },
+        {
+            "enabled": false,
+            "name": "Dropbox DigitalFrame",
+            "provider_remote": "dropbox_df",
+            "remote_folder": "DigitalFrame",
+            "local_path": "/home/pi/Pictures",
+            "delete_extra_local_files": false
+        }
+    ]
+}

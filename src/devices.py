@@ -602,9 +602,14 @@ class Cron():
             self.df.items.set_shuffle(True)
             logger.info(f"Shuffle done.")
 
+    def cloud_sync(self):
+        from csync import run_cloud_sync
+        run_cloud_sync(Config.config_file)
+
     def handle_cron(self):
         import schedule
         schedule.every(1).hours.do(self.pong)
+        schedule.every(1).hours.do(self.cloud_sync)
         schedule.every().day.at("06:00").do(self.shuffle)
         logger.info(f"Created Cron: {schedule.get_jobs()}")
         self.pong()
