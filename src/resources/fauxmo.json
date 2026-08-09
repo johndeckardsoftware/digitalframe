@@ -1,0 +1,20 @@
+{
+  "FAUXMO": {
+    "ip_address": "auto"
+  },
+  "PLUGINS": {
+    "ThreadPlugin": {
+      "DEVICES": [
+        {
+          "name": "Frame",
+          "port": 49152,
+          "on_cmd": "KEY_F8",
+          "off_cmd": "KEY_F7",
+          "use_fake_state": true,
+          "initial_state": "on"
+        }
+      ]
+    }
+  }
+}
+

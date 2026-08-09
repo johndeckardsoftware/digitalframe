@@ -94,6 +94,8 @@ class DigitalFrame:
         self.devices = Devices(self)
         self.mqtt = None
         self._publish_state = None
+        # alexa
+        self.alexa = None
         # plugins
         self.plugins = None
         # sound
@@ -189,6 +191,11 @@ class DigitalFrame:
         if self.sound_enabled: init_audio_device()
 
         self.mqtt_init()
+
+        if Config.get('alexa.fauxmo.enabled', False) or Config.get('alexa.speech2text.enabled', False):
+            from dfalexa import Alexa
+            self.alexa = Alexa(self.this, os.path.join(Config.RESOURCES, "fauxmo.json"))
+            self.alexa.run()
 
         set_target_fps(clock.fps)
         while not window_should_close() and self.keep_looping:
@@ -397,6 +404,8 @@ motion={self.motion}, {self.debug}"
                 self.devices.stop()
             if self.mqtt:
                 self.mqtt.stop()
+            if self.alexa:
+                self.alexa.stop()
             if self.on_exit_save_config:
                 Config.save()
             self.logger.info("stopped.")

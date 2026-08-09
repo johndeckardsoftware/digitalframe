@@ -97,3 +97,4 @@ This software is inspired, or derive parts of the code from the following open s
 
 * [www.thedigitalpictureframe.com](https://www.thedigitalpictureframe.com/)
 * https://github.com/helgeerbe/picframe
+* https://github.com/n8henrie/fauxmo

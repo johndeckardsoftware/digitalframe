@@ -176,6 +176,11 @@ def config_setup(create_md=False):
             with open(cloud_config, "r", encoding="utf-8") as f: cc = json.load(f)
             Config.set('cloud', cc)
             Config.save()
+        alexa_config = os.path.join(Config.WORK_PATH, "src/resources/alexa_config.json")
+        if os.path.exists(alexa_config):
+            with open(alexa_config, "r", encoding="utf-8") as f: cc = json.load(f)
+            Config.set('alexa', cc)
+            Config.save()
 
         logger.info(f"{Config.config_file} created successfully ({len(full_call)} entries).")
     except Exception as e:
