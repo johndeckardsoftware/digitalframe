@@ -171,7 +171,7 @@ def hdmi_is_connected(self):
         self.logger.info("Cause: %s", e)
         return True
 
-def hdmi_toogle(self):
+def hdmi_toggle(self):
     if self.display_on():
         self.display_set_off()
     else:

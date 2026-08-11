@@ -10,8 +10,8 @@ F7  Sleep
 F8  Wakeup
 F9  Change folder up
 F10 Change folder down
-F11 Toogle Fullscreen
-L   Toogle lightness mode
+F11 Toggle Fullscreen
+L   Toggle lightness mode
 K   Increase lux adjustment value
 J   Decrease lux adjustment value
 P   Increase sensor lux value
@@ -21,19 +21,19 @@ T   Decrease light direction angle (light_gradient shader)
 B   Border selection
 M   Matte selection
 R   Change Image show time (sec.), autosleep time (min.) 
-C   Toogle clock
-1-6 Toogle item info:  [1] title, [2] caption, [3] name, [4] date, [5] location, [6] folder
+C   Toggle clock
+1-6 Toggle item info:  [1] title, [2] caption, [3] name, [4] date, [5] location, [6] folder
 0   Set off all item info
 S   Shuffle
 
 CTRL + 
 F   Show fps
-G   Toogle between 1 and 6 fps
+G   Toggle between 1 and 6 fps
 S   Publish state
 D   Debug on
 Q   Show filter
 M   Show system metrics
-H   Toogle HDMI
+H   Toggle HDMI
 E   Exit
 R   Reboot
 P   Shutdown

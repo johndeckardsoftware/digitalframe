@@ -6,8 +6,8 @@
         "class": "HelloWorldPlugin",
         "menu": [
             {
-                "g": "f'Toogle HelloWorld ({self.on_off(@active)})'",
-                "f": "@toogle_active()"
+                "g": "f'Toggle HelloWorld ({self.on_off(@active)})'",
+                "f": "@toggle_active()"
             }
         ],
         "settings": {
@@ -22,8 +22,8 @@
         "class": "WeatherPlugin",
         "menu": [
             {
-                "g": "f'Toogle Weather ({self.on_off(@active)})'",
-                "f": "@toogle_active()"
+                "g": "f'Toggle Weather ({self.on_off(@active)})'",
+                "f": "@toggle_active()"
             },
             {
                 "e": "f'Set Weather mode < ({@mode}) >'",
@@ -46,8 +46,8 @@
         "keyboard": true,
         "menu": [
             {
-                "g": "f'Toogle Teletext ({self.on_off(@active)})'",
-                "f": "@toogle_active()"
+                "g": "f'Toggle Teletext ({self.on_off(@active)})'",
+                "f": "@toggle_active()"
             }
         ],
         "settings": {
@@ -67,7 +67,7 @@
         "menu": [
             {
                 "g": "f'Config Editor ({self.on_off(@active)})'",
-                "f": "@toogle_active()"
+                "f": "@toggle_active()"
             }
         ],
         "settings": {

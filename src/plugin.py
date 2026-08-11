@@ -14,7 +14,7 @@ class PluginWrapper(ABC):
         self.logger.setLevel(Config.get("window.log_level", logging.INFO))
         #self.logger.setLevel(logging.DEBUG)
 
-    def toogle_active(self):
+    def toggle_active(self):
         self.active = not self.active
 
     def keyboard(self, key):

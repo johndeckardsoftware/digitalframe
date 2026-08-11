@@ -45,7 +45,7 @@ class Alexa():
                     item_text = option["t"]
                 elif "g" in option:
                     try:
-                        # Evaluates dynamically like: f'Toogle Ambient Light ({self.on_off(...)})'
+                        # Evaluates dynamically like: f'Toggle Ambient Light ({self.on_off(...)})'
                         item_text = eval(option["g"], {"self": menu_obj, "Config": Config})
                     except Exception:
                         item_text = option["g"]
@@ -55,8 +55,8 @@ class Alexa():
                     except Exception:
                         item_text = option["e"]
 
-                #Toogle pronunciation is impossible for me to get Alexa to understand.
-                item_text_clean = item_text.lower().strip().replace("toogle", "")
+                #Toggle pronunciation is impossible for me to get Alexa to understand.
+                item_text_clean = item_text.lower().strip().replace("toggle", "")
 
                 # Check if voice command matches menu label or key words inside it
                 if item_text_clean and (item_text_clean in command or command in item_text_clean):

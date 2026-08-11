@@ -134,7 +134,7 @@ class DigitalFrame:
         set_window_size(Config.get('window.max_width', 3840), Config.get('window.max_height', 2160))
         self.logger.debug(f"set_full_screen: {get_screen_width()=}, {Config.get('window.max_width', 3840)}, {get_screen_height()=}, {Config.get('window.max_height', 2160)}")
 
-    def toogle_window_size(self):
+    def toggle_window_size(self):
         if self.fullscreen:
             self.set_full_screen()
             self.update_window()

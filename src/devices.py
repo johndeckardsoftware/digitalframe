@@ -10,7 +10,7 @@ from config import Config
 from menu import OnScreenMenu
 import utils.ddcutil as ddcutil
 from utils.metrics import system_metrics, get_cpu_temp
-from utils.display import hdmi_toogle
+from utils.display import hdmi_toggle
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +141,7 @@ class Devices:
                 clock.set_fps(fps)
                 self.show3(f"{clock.fps} fps")
             elif key == KeyboardKey.KEY_H:
-                hdmi_toogle(self.df)
+                hdmi_toggle(self.df)
             elif key == KeyboardKey.KEY_S:
                 df.publish_state()
             elif key == KeyboardKey.KEY_P:
@@ -221,7 +221,7 @@ class Devices:
 
         elif key == KeyboardKey.KEY_F11:
             df.fullscreen = not df.fullscreen
-            df.toogle_window_size()
+            df.toggle_window_size()
 
         elif key == KeyboardKey.KEY_L:
             df.ambient_light = not df.ambient_light
