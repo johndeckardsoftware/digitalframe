@@ -3,3 +3,11 @@ test
 *.pyc
 *.psd
 *.log
+/.vscode
+/.vscode
+/.vscode
+.vscode/launch.json
+/.vscode
+/src/mock
+/src/resources/vosk
+/src/resources/tmp

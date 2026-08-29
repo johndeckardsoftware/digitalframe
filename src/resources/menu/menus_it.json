@@ -1,0 +1,89 @@
+{
+    "menu": [
+        {"t": "Aiuto Tastiera", "k": "KEY_F1"},
+        {"t": "Aiuto Telecomando", "k": "KEY_F2"},
+        {"t": "Pausa", "k": "KEY_F3"},
+        {"t": "Precedente", "k": "KEY_F4"},
+        {"t": "Successivo", "k": "KEY_F5"},
+        {"t": "Dormi", "k": "KEY_F7"},
+        {"t": "Sveglia", "k": "KEY_F8"},
+        {"g": "f'Luce Ambiente ({self.on_off(self.df.ambient_light)})'", "k": "KEY_L"},
+        {"t": "Configurazione Luce", "m": "light"},
+        {"g": "f'Selezione cartella ({self.df.items.get_subfolder()})'", "m": "folders"},
+        {"g": "f'Selezione Bordo ({Config.get(\"items.types.image.border.file\", None)})'", "m": "borders"},
+        {"g": "f'Selezione Passepartout ({Config.get(\"items.types.image.matte.texture\", None)})'", "m": "mattes"},
+        {"e": "f'Tempo visualizzazione immagine < {self.df.image_ttl} > sec.'", "fl": "self.devices.set_ttl(-10)", "fr": "self.devices.set_ttl(10)"},
+        {"e": "f'Tempo sospensione automatica < {self.df.hdmi_off_timeout} > min.'", "fl": "self.devices.set_sleep(-5)", "fr": "self.devices.set_sleep(5)"},
+        {"g": "f'Riproduzione casuale ({self.on_off(self.df.items.get_shuffle())})'", "k": "KEY_S"},
+        {"t": "Informazioni Immagine", "m": "meta"},
+        {"t": "Orologio", "k": "KEY_C"},
+        {"t": "Estensioni", "m": "plugins"},
+        {"t": "Altri Strumenti", "m": "debug" }
+    ],
+    "menu_sel": 0,
+    "light": [
+        {"e": "f'Regolazione Luce < {self.df.lux_adj} >'", "fl": "self.df.set_lux_adj(-self.devices.inc_value)", "fr": "self.df.set_lux_adj(self.devices.inc_value)"},
+        {"e": "f'Luminosità < {self.df.get_brightness()} > (con Luce ambientale disattivata)'",  "fl": "self.devices.set_lux(-1)", "fr": "self.devices.set_lux(1)"},
+        {"e": "f'Angolo direzione luce < {self.df.shader.config_get('uDirection')} > (solo per shader \"light_gradient\")'",
+         "fl": "self.devices.set_direction(-1)", "fr": "self.devices.set_direction(1)"},
+        {"e": "f'Luminosità monitor < {ddcutil.get_vcp_value(ddcutil.BRIGHTNESS)} >'",
+         "fl": "self.devices.set_monitor_brightness(-1)", "fr": "self.devices.set_monitor_brightness(1)"},
+        {"e": "f'Contrasto monitor < {ddcutil.get_vcp_value(ddcutil.CONTRAST)} >'",
+         "fl": "self.devices.set_monitor_contrast(-1)", "fr": "self.devices.set_monitor_contrast(1)"},
+        {"e": "f'Passo di incremento < {self.devices.inc_value} >'", "fl": "self.devices.set_increment(-1)", "fr": "self.devices.set_increment(1)"},
+        {"t": "Indietro", "back": true, "m": "menu"}
+    ],
+    "light_sel": 0,
+    "light_width": 1200,
+    "meta": [
+        {"g": "f'Titolo ({self.df.items.get_show_text(\"title\")})'", "k": "KEY_ONE"},
+        {"g": "f'Didascalia ({self.df.items.get_show_text(\"caption\")})'", "k": "KEY_TWO"},
+        {"g": "f'Nome ({self.df.items.get_show_text(\"name\")})'", "k": "KEY_THREE"},
+        {"g": "f'Data ({self.df.items.get_show_text(\"date\")})'", "k": "KEY_FOUR"},
+        {"g": "f'Posizione ({self.df.items.get_show_text(\"location\")})'", "k": "KEY_FIVE"},
+        {"g": "f'Cartella ({self.df.items.get_show_text(\"directory\")})'", "k": "KEY_SIX"},
+        {"t": "Nessuna informazione", "k": "KEY_ZERO"},
+        {"t": "Indietro", "back": true, "m": "menu"}
+    ],
+    "meta_sel": 0,
+    "debug": [
+        {"t": "Filtro", "k": "CTRL+KEY_Q"},
+        {"g": "f'Modifica Filtro ({self.df.items.get_filter()})'", "vk": true, "d": "f'{self.df.items.get_filter()}'", "f": "self.df.set_tags_filter(self.osk.typed_text)"},
+        {"e": "f'Qualita voce < {Config.get(\"voice.threshold\", 70)} >'", "fl": "self.devices.set_voice_threshold(-1)", "fr": "self.devices.set_voice_threshold(1)"},
+        {"t": "Diagnostica", "k": "CTRL+KEY_D"},
+        {"t": "Diagnostica Sistema", "k": "CTRL+KEY_M"},
+        {"t": "Numero Fotogrammi Secondo", "k": "CTRL+KEY_F"},
+        {"t": "Dimensione Schermo", "k": "KEY_F11"},
+        {"t": "Privato", "k": "KEY_F6"},
+        {"t": "Salva configurazione", "f": "Config.save()"},
+        {"t": "Chiudi", "f": "self.df.close(False)"},
+        {"t": "Chiudi e Salva configurazione", "k": "CTRL+KEY_E"},
+        {"t": "Ricarica", "f": "self.df.reload(False)"},
+        {"t": "Ricarica e Salva configurazione", "f": "self.df.reload()"},
+        {"t": "Riparti", "f": "self.df.reboot()"},
+        {"t": "Spegni", "f": "self.df.power_down()"},
+        {"t": "Indietro", "back": true, "m": "menu"}
+    ],
+    "debug_sel": 0,
+    "plugins": [
+        {"t": "Indietro", "back": true, "m": "menu"}
+    ],
+    "plugins_sel": 0,
+
+    "extra": [
+        {"t": "pausa", "f": "self.df.set_paused(True)"},
+        {"t": "continua", "f": "self.df.set_paused(False)"},
+        {"t": "avanti", "k": "KEY_F5"},
+        {"t": "prossima", "k": "KEY_F5"},
+        {"t": "precedente", "k": "KEY_F4"},
+        {"t": "opzioni", "f": "self.df.devices.keyboard(self.df.devices.key_kb_menu)"}
+    ],
+
+    "wta": [
+        ["incrementa", "fr"],
+        ["incremento", "fr"],
+        ["decrementa", "fl"],
+        ["decremento", "fl"],
+        ["imposta", "s"]
+    ]
+}

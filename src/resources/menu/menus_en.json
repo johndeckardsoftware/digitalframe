@@ -7,13 +7,13 @@
         {"t": "Next", "k": "KEY_F5"},
         {"t": "Sleep", "k": "KEY_F7"},
         {"t": "Wake up", "k": "KEY_F8"},
-        {"g": "f'Change Folder ({self.df.items.get_subfolder()})'", "k": null, "m": "folders"},
         {"g": "f'Toggle Ambient Light ({self.on_off(self.df.ambient_light)})'", "k": "KEY_L"},
         {"t": "Setup Light", "k": null, "m": "light"},
+        {"g": "f'Folder selection ({self.df.items.get_subfolder()})'", "k": null, "m": "folders"},
         {"g": "f'Border selection ({Config.get(\"items.types.image.border.file\", None)})'", "k": null, "m": "borders"},
         {"g": "f'Matte selection ({Config.get(\"items.types.image.matte.texture\", None)})'", "k": null, "m": "mattes"},
         {"e": "f'Image showtime < {self.df.image_ttl} > sec.'", "fl": "self.devices.set_ttl(-10)", "fr": "self.devices.set_ttl(10)"},
-        {"e": "f'Autosleep time < {self.df.hdmi_off_timeout} > min.'", "fl": "self.devices.set_sleep(-5)", "fr": "self.devices.set_sleep(5)"},
+        {"e": "f'Automatic sleep time < {self.df.hdmi_off_timeout} > min.'", "fl": "self.devices.set_sleep(-5)", "fr": "self.devices.set_sleep(5)"},
         {"g": "f'Toggle shuffle ({self.on_off(self.df.items.get_shuffle())})'", "k": "KEY_S"},
         {"t": "Item info (exif)", "k": null, "m": "meta"},
         {"t": "Toggle Clock", "k": "KEY_C"},
@@ -42,24 +42,25 @@
         {"g": "f'Toggle Date ({self.df.items.get_show_text(\"date\")})'", "k": "KEY_FOUR"},
         {"g": "f'Toggle Location ({self.df.items.get_show_text(\"location\")})'", "k": "KEY_FIVE"},
         {"g": "f'Toggle Folder ({self.df.items.get_show_text(\"directory\")})'", "k": "KEY_SIX"},
-        {"t": "Set off all item info", "k": "KEY_ZERO"},
+        {"t": "Set off all", "k": "KEY_ZERO"},
         {"t": "Back", "back": true, "m": "menu"}
     ],
     "meta_sel": 0,
     "debug": [
-        {"t": "Toggle Show debug", "k": "CTRL+KEY_D"},
         {"t": "Show filter", "k": "CTRL+KEY_Q"},
         {"g": "f'Set filter ({self.df.items.get_filter()})'", "vk": true, "d": "f'{self.df.items.get_filter()}'", "f": "self.df.set_tags_filter(self.osk.typed_text)"},
+        {"e": "f'Voice quality < {Config.get(\"voice.threshold\", 70)} >'", "fl": "self.devices.set_voice_threshold(-1)", "fr": "self.devices.set_voice_threshold(1)"},
+        {"t": "Toggle debug", "k": "CTRL+KEY_D"},
         {"t": "Show system metrics", "k": "CTRL+KEY_M"},
         {"t": "Show fps", "k": "CTRL+KEY_F"},
-        {"t": "Toggle Fullscreen", "k": "KEY_F11"},
-        {"t": "Toggle Private", "k": "KEY_F6"},
+        {"t": "Toggle full screen", "k": "KEY_F11"},
+        {"t": "Toggle private", "k": "KEY_F6"},
         {"t": "Save configuration", "f": "Config.save()"},
-        {"t": "Close", "k": "CTRL+KEY_E"},
-        {"t": "Close without saving config", "f": "self.df.close(False)"},
-        {"t": "Reload", "f": "self.df.reload()"},
-        {"t": "Reload without saving config", "f": "self.df.reload(False)"},
-        {"t": "Reboot", "f": "self.df.reboot()"},
+        {"t": "Close", "f": "self.df.close(False)"},
+        {"t": "Close and save configuration", "k": "CTRL+KEY_E"},
+        {"t": "Reload", "f": "self.df.reload(False)"},
+        {"t": "Reload and save configuraiton", "f": "self.df.reload()"},
+        {"t": "Restart", "f": "self.df.reboot()"},
         {"t": "Power down", "f": "self.df.power_down()"},
         {"t": "Back", "back": true, "m": "menu"}
     ],
@@ -67,5 +68,21 @@
     "plugins": [
         {"t": "Back", "back": true, "m": "menu"}
     ],
-    "plugins_sel": 0
+    "plugins_sel": 0,
+
+    "extra": [
+        {"t": "pause", "f": "self.df.set_paused(True)"},
+        {"t": "continue", "f": "self.df.set_paused(False)"},
+        {"t": "forward", "k": "KEY_F5"},
+        {"t": "next", "k": "KEY_F5"},
+        {"t": "previous", "k": "KEY_F4"},
+        {"t": "options", "f": "self.df.devices.keyboard(self.df.devices.key_kb_menu)"}
+    ],
+
+    "wta": [
+        ["increment", "fr"],
+        ["decrement", "fl"],
+        ["set", "s"]
+    ]
+
 }
