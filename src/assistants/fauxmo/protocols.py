@@ -9,9 +9,9 @@ import uuid
 from email.utils import formatdate
 from typing import cast
 
-from alexa.fauxmo import logger
-from alexa.fauxmo.plugins import FauxmoPlugin
-from alexa.fauxmo.utils import make_serial
+from assistants.fauxmo import logger
+from assistants.fauxmo.plugins import FauxmoPlugin
+from assistants.fauxmo.utils import make_serial
 
 
 class Fauxmo(asyncio.Protocol):

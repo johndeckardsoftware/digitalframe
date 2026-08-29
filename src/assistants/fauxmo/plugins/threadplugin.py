@@ -26,7 +26,7 @@ Example config:
     "ip_address": "auto"
   },
   "PLUGINS": {
-    "CommandLinePlugin": {
+    "ThreadPlugin": {
       "timeout": 5,
       "DEVICES": [
         {
@@ -57,11 +57,11 @@ import shlex
 import subprocess
 import typing as t
 
-from alexa.fauxmo import logger
-from alexa.fauxmo.plugins import FauxmoPlugin
+from assistants.fauxmo import logger
+from assistants.fauxmo.plugins import FauxmoPlugin
 
 
-class CommandLinePlugin(FauxmoPlugin):
+class ThreadPlugin(FauxmoPlugin):
     """Fauxmo Plugin for running commands on the local machine."""
 
     def __init__(
@@ -76,12 +76,13 @@ class CommandLinePlugin(FauxmoPlugin):
         shell: bool = False,
         use_fake_state: bool = False,
         initial_state: str | None = None,
+        digitalframe: None
     ) -> None:
-        """Initialize a CommandLinePlugin instance.
+        """Initialize a ThreadPlugin instance.
 
         Args:
             name: Name for this Fauxmo device
-            port: Port on which to run a specific CommandLinePlugin instance
+            port: Port on which to run a specific ThreadPlugin instance
             on_cmd: Command to be called when turning device on
             off_cmd: Command to be called when turning device off
             initial_state: If using fake state, set the initial state to this
@@ -103,6 +104,8 @@ class CommandLinePlugin(FauxmoPlugin):
 
         self.use_fake_state = use_fake_state
 
+        self.digitalframe = digitalframe
+
         super().__init__(name=name, port=port, initial_state=initial_state)
 
     def run_cmd(self, cmd: str) -> bool:
@@ -114,21 +117,14 @@ class CommandLinePlugin(FauxmoPlugin):
             True if command seems to have run without error
 
         """
-        # Workaround for type hints, as `shell=True` expects a string and
-        # `shell=False` expects a list
-        cmd_list: str | t.List[str] = cmd
-        if not self.shell:
-            cmd_list = shlex.split(cmd)
-
+        logger.info(f"run_cmd: {cmd}")
         try:
-            process = subprocess.run(
-                cmd_list, timeout=self.timeout, shell=self.shell
-            )
+            self.digitalframe.devices.send_keys(cmd)
         except subprocess.TimeoutExpired as e:
             logger.exception(e)
             return False
 
-        return process.returncode == 0
+        return True
 
     def on(self) -> bool:
         """Run on command.

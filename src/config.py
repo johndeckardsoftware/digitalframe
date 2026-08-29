@@ -13,6 +13,16 @@ class Config:
     WORK_PATH = None
     SOURCE_PATH = None
     RESOURCES = None
+    RESOURCES_3D = None
+    RESOURCES_BORDER = None
+    RESOURCES_CONFIG = None
+    RESOURCES_FONT = None
+    RESOURCES_HELP = None
+    RESOURCES_ICON = None
+    RESOURCES_MATTE = None
+    RESOURCES_MENU = None
+    RESOURCES_SHADER = None
+    RESOURCES_VOSK = None
     AUTO_SET = False
     config_file = None
     config = {}
@@ -36,6 +46,17 @@ class Config:
 
         Config.SOURCE_PATH = os.path.realpath(os.path.dirname(__file__))
         Config.RESOURCES = Config.get('window.resources', os.path.join(Config.SOURCE_PATH, 'resources'))
+        Config.RESOURCES_3D = os.path.join(Config.RESOURCES, '3d')
+        Config.RESOURCES_BORDER = os.path.join(Config.RESOURCES, 'border')
+        Config.RESOURCES_CONFIG = os.path.join(Config.RESOURCES, 'config')
+        Config.RESOURCES_FONT = os.path.join(Config.RESOURCES, 'font')
+        Config.RESOURCES_HELP = os.path.join(Config.RESOURCES, 'help')
+        Config.RESOURCES_ICON = os.path.join(Config.RESOURCES, 'icon')
+        Config.RESOURCES_MATTE = os.path.join(Config.RESOURCES, 'matte')
+        Config.RESOURCES_MENU = os.path.join(Config.RESOURCES, 'menu')
+        Config.RESOURCES_SHADER = os.path.join(Config.RESOURCES, 'shader')
+        Config.RESOURCES_VOSK = os.path.join(Config.RESOURCES, 'vosk')
+
         return True
 
     @staticmethod
@@ -59,7 +80,7 @@ class Config:
             json_style = json.dumps(Config.config, indent=4)
             compact_json = re.sub(
                     r'\[(?![^\]]*\{)\s+([^\]]+?)\s+\]',
-                    lambda m: "[" + re.sub(r'\s+', ' ', m.group(1)).strip() + "]", 
+                    lambda m: "[" + re.sub(r'\s+', ' ', m.group(1)).strip() + "]",
                     json_style
                 )
             f.write(compact_json)

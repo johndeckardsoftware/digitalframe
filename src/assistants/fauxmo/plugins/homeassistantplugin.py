@@ -59,8 +59,8 @@ from collections import defaultdict
 from http.client import HTTPResponse
 from typing import Dict
 
-from alexa.fauxmo import logger
-from alexa.fauxmo.plugins import FauxmoPlugin
+from assistants.fauxmo import logger
+from assistants.fauxmo.plugins import FauxmoPlugin
 
 
 class HomeAssistantPlugin(FauxmoPlugin):

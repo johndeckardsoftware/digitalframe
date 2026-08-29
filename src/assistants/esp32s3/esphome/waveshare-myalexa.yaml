@@ -1,0 +1,617 @@
+# Board: https://docs.waveshare.com/ESP32-S3-AUDIO-Board
+# Definition: definitions/boards/generic-esp32s3/manifest.yaml
+#
+# for more info: https://esphome.io/install/
+#
+substitutions:
+  # ---------------------------------------------------------------------------
+  # Pins - Waveshare ESP32-S3-AUDIO-Board. Do not change
+  # unless you are on a different board.
+  # ---------------------------------------------------------------------------
+  i2s_mclk: GPIO12
+  i2s_bclk: GPIO13          # SCLK
+  i2s_lrclk: GPIO14         # LRCK/WS
+  i2s_din: GPIO15           # ES7210 -> ESP (mic in)
+  i2s_dout: GPIO16          # ESP -> ES8311 (speaker out)
+  i2c_sda: GPIO11
+  i2c_scl: GPIO10
+  led_pin: GPIO38
+  led_num: '7'              # WS2812 ring
+
+  # TCA9555 expander channels. Confirmed against Waveshare's own driver code
+  # (Audio_ES8311.cpp drives EXIO8; Button_Driver.cpp reads EXIO9/10/11), which
+  # is why the "schematic says the keys are on 12" folklore is ignored here.
+  amp_ctrl: '8'             # PA_EN / amplifier enable - ACTIVE HIGH
+  key1_exio: '9'            # volume down  (active low, 10k hardware pull-up)
+  key2_exio: '10'           # play/pause
+  key3_exio: '11'           # volume up
+
+  done_sound_file: './sounds/done.wav'
+  unknown_sound_file: './sounds/unknown.wav'
+
+  # Onboard amplifier volume clamps. The little speaker distorts near the top,
+  # so the media player is limited to this window (0.0 - 1.0).
+  volume_min: '0.4'
+  volume_max: '0.8'
+
+  # raspberry running digitalframe
+  DIGITALFRAME: rpi4-frame
+  DIGITALFRAME_IP: 192.168.10.51
+  DIGITALFRAME_PORT: 5005
+
+esphome:
+  name: waveshare-myalexa
+  friendly_name: Waveshare voice
+  on_boot:
+    priority: -600
+    then:
+      - script.execute:
+          {id: led_set_effect, effect: "Wipe", r: 0.0, g: 0.0, b: 0.0}
+      - delay: 6s
+      - microphone.capture: i2s_mics
+      - logger.log:
+          {format: 'Mic enabled', tag: on_boot, level: INFO}
+      - micro_wake_word.start:
+          id: mww
+      - logger.log:
+          {format: 'Micro Wake Word engine is RUNNING and listening Mic', level: INFO, tag: on_boot}
+      - script.execute:
+          {id: led_set_effect, effect: "off", r: 0.0, g: 0.0, b: 0.0}
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  framework:
+    type: esp-idf
+  flash_size: 8MB
+
+psram:
+  mode: octal
+  speed: 80MHZ
+
+logger:
+  level: DEBUG
+
+api:
+  reboot_timeout: 0s
+  encryption:
+    key: "0jCnjD8e68WJJ5i+/s1HLq4ynRF2BeKEuXvYvt3EeI0="
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  reboot_timeout: 0s
+  ap:
+    ssid: Waveshare voice Fallback Hotspot
+    password: "2srCdmc9V7H1"
+
+udp:
+  - id: mic_stream
+    addresses: ${DIGITALFRAME_IP}
+    port: ${DIGITALFRAME_PORT}
+    on_receive:
+      then:
+        - lambda: |-
+            id(digitalframe_server).publish_state(1.0f);
+            id(udp_streaming_active) = false;
+            std::string msg(data.begin(), data.end());
+            ESP_LOGI("udp_rx", "Received command: %s", msg.c_str());
+            
+            auto call = id(status_ring).make_call();
+            call.set_state(true);
+            call.set_effect("None");        // Clears any active pulse/effect
+            call.set_brightness(0.9f);
+            id(amp_enable).turn_on();       // Turn on the amplifier switch
+            if (msg == "done") {
+              call.set_red(0.0f);
+              call.set_green(1.0f);
+              call.set_blue(0.0f);
+              call.perform();
+              id(external_media_player)->play_file(id(done_sound), false, false);
+            } else if (msg == "unknown") {
+              call.set_red(1.0f);
+              call.set_green(0.0f);
+              call.set_blue(0.0f);
+              call.perform();              
+              id(external_media_player)->play_file(id(unknown_sound), false, false);
+            }
+        - delay: 2s
+        - light.turn_off: status_ring
+          
+captive_portal:
+
+i2c:
+  - id: internal_i2c
+    sda: ${i2c_sda}
+    scl: ${i2c_scl}
+    scan: true
+    frequency: 100kHz
+
+# I/O expander: amplifier enable + the three front buttons.
+tca9555:
+  id: ioexp
+  i2c_id: internal_i2c
+  address: 0x20
+
+# The DAC and ADC share BCLK/LRCLK pins, but ESPHome's i2s_audio cannot run one
+# bus full-duplex (the mic and speaker each call i2s_new_channel on the port, and
+# the second fails with "Parent bus is busy"). So we use TWO buses (two I2S ports)
+# over the shared pins:
+#   - i2s_input  = the MIC bus, I2S MASTER. The mic is always capturing (wake
+#     word), so it drives BCLK/LRCLK/MCLK continuously. Using the ESP as master
+#     is what makes the mic get a correct-rate stream (a codec-mastered clock via
+#     force_master gave the mic garbage and killed wake word).
+#   - i2s_output = the SPEAKER bus, I2S SLAVE. It reads the mic's clock and only
+#     needs to output data, so it never contends for a port of its own.
+# The ES8311 (DAC) and ES7210 (ADC) are stock and slave to the mic's clock; no
+# patched es8311 / force_master is needed.
+i2s_audio:
+  - id: i2s_input
+    i2s_mclk_pin: ${i2s_mclk}
+    i2s_bclk_pin:
+      number: ${i2s_bclk}
+      allow_other_uses: true
+    i2s_lrclk_pin:
+      number: ${i2s_lrclk}
+      allow_other_uses: true
+  - id: i2s_output
+    i2s_bclk_pin:
+      number: ${i2s_bclk}
+      allow_other_uses: true
+    i2s_lrclk_pin:
+      number: ${i2s_lrclk}
+      allow_other_uses: true
+
+audio_adc:
+  - platform: es7210
+    id: adc_mic
+    i2c_id: internal_i2c
+    # Runtime gain lives on the `mic_gain_db` number below. The ES7210 caps at
+    # 37.5 dB; higher values are silently clamped by the driver.
+    mic_gain: 24db
+
+audio_dac:
+  - platform: es8311
+    id: es8311_dac
+    i2c_id: internal_i2c
+
+microphone:
+  - platform: i2s_audio
+    id: i2s_mics
+    i2s_audio_id: i2s_input
+    i2s_din_pin: ${i2s_din}
+    adc_type: external
+    pdm: false
+    # default i2s_mode: primary -> this bus masters the shared clock.
+    # 16-bit on purpose: as master the mic defines the frame's slot width, and
+    # the i2s_audio default is 32-bit. The ES8311/speaker are 16-bit, so a
+    # 32-bit frame doubles the bit clock they expect and playback comes out as
+    # noise. Matching 16-bit aligns the whole bus (the ES7210 is 16-bit too).
+    bits_per_sample: 16bit
+    channel: right
+    # link the audio stream to the UDP stream
+    on_data:
+      then:
+        - if:
+            condition:
+              - lambda: 'return id(udp_streaming_active);'
+            then:
+              - udp.write:
+                  id: mic_stream
+                  data: !lambda return x;
+
+speaker:
+  - platform: i2s_audio
+    id: i2s_audio_speaker
+    i2s_audio_id: i2s_output
+    i2s_dout_pin: ${i2s_dout}
+    i2s_mode: secondary          # slave to the mic bus's clock
+    dac_type: external
+    audio_dac: es8311_dac
+    timeout: never
+    buffer_duration: 100ms
+
+  # Mixes the announcement and media pipelines into the one physical output.
+  # Mono: the board has a single speaker (mono ES8311 + NS4150B), so a second
+  # channel would just be discarded.
+  - platform: mixer
+    id: mixing_speaker
+    output_speaker: i2s_audio_speaker
+    num_channels: 1
+    source_speakers:
+      - id: announcement_mixing_input
+        timeout: never
+      - id: media_mixing_input
+        timeout: never
+    task_stack_in_psram: true
+
+  # The mixer needs both inputs at one sample rate; these resample if needed.
+  - platform: resampler
+    id: announcement_resampling_speaker
+    output_speaker: announcement_mixing_input
+    task_stack_in_psram: true
+  
+  - platform: resampler
+    id: media_resampling_speaker
+    output_speaker: media_mixing_input
+    task_stack_in_psram: true
+
+micro_wake_word:
+  id: mww
+  microphone:
+    microphone: i2s_mics
+  stop_after_detection: false
+  task_stack_in_psram: true
+  models:
+    - model: https://github.com/esphome/micro-wake-word-models/raw/main/models/v2/alexa.json
+      id: alexa
+      probability_cutoff: 0.80 # Triggers on almost any background noise/voice
+    #- model: https://github.com/esphome/micro-wake-word-models/raw/main/models/v2/okay_nabu.json
+    #  id: okay_nabu
+  vad:
+    model: https://github.com/esphome/micro-wake-word-models/raw/main/models/v2/vad.json
+  on_wake_word_detected:
+    - if:
+        condition:
+            - lambda: 'return !isnan(id(digitalframe_server).state) && id(digitalframe_server).state > 0.0f;'
+        then:
+          - lambda: 'id(udp_streaming_active) = true;'
+          - light.turn_on: {id: status_ring, red: 0.0, green: 1.0, blue: 1.0, brightness: 80%, effect: "Scan" }
+        else:
+          - lambda: 'id(udp_streaming_active) = false;'
+          - light.turn_on: {id: status_ring, red: 1.0, green: 0.0, blue: 0.0, brightness: 40%, effect: "Pulse Slow" }
+            
+    #- switch.turn_on: amp_enable
+    #- media_player.speaker.play_on_device_media_file:
+    #    media_file: wake_word_triggered_sound
+    #    announcement: false
+    #- light.turn_on: { id: status_ring, red: 0.0, green: 1.0, blue: 1.0, brightness: 60%, flash_length: 2s }
+    #- light.turn_on: { id: status_ring, red: 0.0, green: 0.0, blue: 0.8, brightness: 80% }
+
+switch:
+  - platform: gpio
+    id: amp_enable
+    name: Amplifier
+    icon: mdi:speaker
+    entity_category: config
+    pin:
+      tca9555: ioexp
+      number: ${amp_ctrl}
+      inverted: false
+      mode: OUTPUT
+      #  output: true
+    # OFF at boot so the amp doesn't amplify the undriven DAC line as a hiss
+    # before the speaker's first playback. The media_player on_state turns it on
+    # the moment audio starts and leaves it on (the speaker then holds the line
+    # at silence, which is clean).
+    restore_mode: ALWAYS_OFF
+
+light:
+  - platform: esp32_rmt_led_strip
+    id: status_ring
+    name: "Status Ring"
+    pin: ${led_pin}
+    num_leds: ${led_num}
+    chipset: WS2812
+    rgb_order: RGB
+    default_transition_length: 150ms
+    effects:
+      # update_interval must be LONGER than transition_length: it is how often
+      # the pulse flips its brightness target (min<->max), not a frame rate. A
+      # 16ms interval flips faster than the transition can move, so the ring just
+      # sits at one brightness (looks solid). ~2x the transition pulses cleanly.
+      - pulse:
+          name: "Pulse Slow"
+          min_brightness: 30%
+          max_brightness: 100%
+          transition_length: 2000ms
+          update_interval: 3000ms
+      - pulse:
+          name: "Pulse Medium"
+          min_brightness: 30%
+          max_brightness: 100%
+          transition_length: 600ms
+          update_interval: 1200ms
+      - pulse:
+          name: "Pulse Fast"
+          min_brightness: 30%
+          max_brightness: 100%
+          transition_length: 300ms
+          update_interval: 600ms
+      - addressable_rainbow:
+          name: "Rainbow Slow"
+          speed: 6
+          width: 7
+      - addressable_color_wipe:
+          name: "Wipe"
+          colors:
+            - red: 20%
+              green: 100%
+              blue: 0%
+              num_leds: 5
+              gradient: true
+            - red: 0%
+              green: 0%
+              blue: 10%
+              num_leds: 1
+          add_led_interval: 100ms          
+      # Scan / Twinkle use the phase colour set by control_leds, so they still
+      # read as "listening/thinking/replying" while looking different.
+      - addressable_scan:
+          name: "Scan"
+          move_interval: 120ms
+          scan_width: 2
+      - addressable_twinkle:
+          name: "Twinkle"
+          twinkle_probability: 8%
+          progress_interval: 40ms
+      - addressable_fireworks:
+          name: "Fireworks"
+          spark_probability: 12%
+          use_random_color: true
+      - addressable_random_twinkle:
+          name: "Random Twinkle"
+          twinkle_probability: 8%
+          progress_interval: 40ms
+      - addressable_rainbow:
+          name: "Rainbow Fast"
+          speed: 15
+          width: 7
+      # Custom effects. current_color is the phase colour set by control_leds,
+      # so these still read as the current assistant state.
+      - addressable_lambda:
+          name: "Comet"
+          update_interval: 70ms
+          lambda: |-
+            static int head = 0;
+            const int n = it.size();
+            for (int i = 0; i < n; i++) {
+              int d = (head - i + n) % n;                 // 0 at head, grows behind
+              float b = (d < 5) ? (1.0f / (1 << d)) : 0.0f;
+              it[i] = Color((uint8_t)(current_color.red   * b),
+                            (uint8_t)(current_color.green * b),
+                            (uint8_t)(current_color.blue  * b));
+            }
+            head = (head + 1) % n;
+      - addressable_lambda:
+          name: "Breathe"
+          update_interval: 32ms
+          lambda: |-
+            static uint16_t t = 0;
+            float b = (sinf(t * 3.14159265f / 128.0f) + 1.0f) * 0.5f;  // 0..1
+            b = 0.12f + b * 0.88f;                                     // floor 12%
+            it.all() = Color((uint8_t)(current_color.red   * b),
+                             (uint8_t)(current_color.green * b),
+                             (uint8_t)(current_color.blue  * b));
+            t = (t + 2) % 256;
+      - addressable_lambda:
+          name: "Spinner"
+          update_interval: 90ms
+          lambda: |-
+            static int pos = 0;
+            const int n = it.size();
+            it.all() = Color(0, 0, 0);
+            it[pos % n] = current_color;
+            it[(pos + 1) % n] = Color((uint8_t)(current_color.red   * 0.35f),
+                                      (uint8_t)(current_color.green * 0.35f),
+                                      (uint8_t)(current_color.blue  * 0.35f));
+            pos = (pos + 1) % n;
+      - addressable_lambda:
+          name: "Fire"
+          update_interval: 70ms
+          lambda: |-
+            const int n = it.size();
+            for (int i = 0; i < n; i++) {
+              uint8_t r = 160 + (esp_random() % 96);       // 160..255
+              uint8_t g = (uint8_t)(r * (0.20f + (esp_random() % 45) / 255.0f));
+              it[i] = Color(r, g, 0);
+            }
+
+globals:
+  - id: mic_is_muted
+    type: bool
+    restore_value: no          # the switch forces OFF at boot (see on_client_connected)
+    initial_value: 'false'
+
+  # Flags to track whether active UDP streaming is requested
+  - id: udp_streaming_active
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  # Transient pass-through for the current ring colour (set by led_set_effect
+  # from its params right before use), so no need to persist across reboots.
+  - id: led_ring_color_r
+    type: float
+    restore_value: no
+    initial_value: '1.0'
+  - id: led_ring_color_g
+    type: float
+    restore_value: no
+    initial_value: '1.0'
+  - id: led_ring_color_b
+    type: float
+    restore_value: no
+    initial_value: '1.0'
+
+script:
+  - id: debug_mww
+    then:
+      - lambda: |-
+          if (id(mww).is_running()) {
+            ESP_LOGI("mww_debug", "Micro Wake Word engine is RUNNING and listening to the mic!");
+          } else {
+            ESP_LOGE("mww_debug", "Micro Wake Word engine is STOPPED!");
+            id(mww).start();
+          }
+          
+  - id: play_sound
+    parameters:
+      priority: bool
+      sound_file: "audio::AudioFile*"
+    then:
+      - lambda: |-
+          id(external_media_player)->play_file(sound_file, false, false);
+  
+  - id: flash_ring
+    then:
+      - light.turn_on: { id: status_ring, red: 0.0, green: 1.0, blue: 0.0, brightness: 50%, flash_length: 1s }
+
+  # Minimal LED dispatcher: off / solid / a named built-in effect.
+  - id: led_set_effect
+    mode: restart
+    parameters:
+      effect: string
+      r: float
+      g: float
+      b: float
+    then:
+      - lambda: |
+          id(led_ring_color_r) = r;
+          id(led_ring_color_g) = g;
+          id(led_ring_color_b) = b;
+          ESP_LOGI("led", "led_set_effect: effect='%s' rgb(%.2f, %.2f, %.2f) brightness=%.2f",
+                   effect.c_str(), r, g, b, (float) id(led_ring_brightness).state);
+      - if:
+          condition:
+            lambda: return effect == "off";
+          then:
+            - light.turn_off: status_ring
+          else:
+            - if:
+                condition:
+                  lambda: return effect == "solid";
+                then:
+                  - light.turn_on:
+                      id: status_ring
+                      effect: None
+                      brightness: !lambda return id(led_ring_brightness).state;
+                      red: !lambda return id(led_ring_color_r);
+                      green: !lambda return id(led_ring_color_g);
+                      blue: !lambda return id(led_ring_color_b);
+                else:
+                  - light.turn_on:
+                      id: status_ring
+                      brightness: !lambda return id(led_ring_brightness).state;
+                      red: !lambda return id(led_ring_color_r);
+                      green: !lambda return id(led_ring_color_g);
+                      blue: !lambda return id(led_ring_color_b);
+                      effect: !lambda return effect;
+
+number:
+  - platform: template
+    id: led_ring_brightness
+    name: "LED Ring Brightness"
+    icon: mdi:brightness-6
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    min_value: 0.4
+    max_value: 1.0
+    step: 0.05
+    initial_value: 0.8
+    mode: slider
+#    on_value:
+#      - if:
+#          condition:
+#            light.is_on: status_ring
+#          then:
+#            - light.turn_on:
+#                id: status_ring
+#                brightness: !lambda 'return x;'
+
+sensor:
+  - platform: template
+    id: digitalframe_server
+    update_interval: 60s
+    lambda: |-
+      #include <lwip/sockets.h>
+      #include <fcntl.h>
+
+      static bool first_call = true;
+      
+      if (first_call) {
+        first_call = false;
+        return 1.0f;
+      }
+      
+      float current_state;
+      struct sockaddr_in addr{};
+      addr.sin_family = AF_INET;
+      addr.sin_port = htons(${DIGITALFRAME_PORT});
+      addr.sin_addr.s_addr = inet_addr("${DIGITALFRAME_IP}");
+
+      int sock = ::socket(AF_INET, SOCK_STREAM, 0);
+      if (sock >= 0) {
+        int flags = ::fcntl(sock, F_GETFL, 0);
+        ::fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+
+        int res = ::connect(sock, (struct sockaddr *)&addr, sizeof(addr));
+        if (res == 0 || errno == EINPROGRESS || errno == EALREADY) {
+          current_state = 1.0f;
+        } else {
+          current_state = 0.0f;
+        }
+        ::close(sock);
+      } else {
+        current_state = 0.0f;
+      }
+
+      return current_state;
+      
+binary_sensor:    
+  - platform: gpio
+    name: "Key1"
+    pin:
+      tca9555: ioexp
+      number: ${key1_exio}
+      inverted: true
+    on_press:
+      - script.execute: {id: led_set_effect, effect: "Pulse Fast", r: 0.0, g: 1.0, b: 1.0}
+
+  - platform: gpio
+    name: "Key2"
+    pin:
+      tca9555: ioexp
+      number: ${key2_exio}
+      inverted: true
+    on_press:
+      - script.execute: {id: led_set_effect, effect: "solid", r: 0.0, g: 1.0, b: 0.0}
+
+  - platform: gpio
+    name: "Key3"
+    pin:
+      tca9555: ioexp
+      number: ${key3_exio}
+      inverted: true
+    on_press:
+      - script.execute: {id: led_set_effect, effect: "off", r: 0.0, g: 0.0, b: 0.0}
+
+media_player:
+  - platform: speaker
+    id: external_media_player
+    volume_initial: 0.8
+    volume_increment: 0.01
+    volume_min: ${volume_min}
+    volume_max: ${volume_max}
+    task_stack_in_psram: true
+    announcement_pipeline:
+      speaker: announcement_resampling_speaker
+      #speaker: announcement_mixing_input
+      format: WAV               # cheapest codec for the S3
+      num_channels: 1           # stereo is pointless for announcements
+      sample_rate: 16000        # what Music Assistant serves
+    media_pipeline:
+      speaker: media_resampling_speaker
+      #speaker: media_mixing_input
+      format: WAV
+      num_channels: 1           # mono hardware, one speaker
+      sample_rate: 16000
+    files:
+      - id: done_sound
+        file: ${done_sound_file}  
+      - id: unknown_sound
+        file: ${unknown_sound_file}

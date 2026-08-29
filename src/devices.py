@@ -360,8 +360,13 @@ class Devices:
         time.sleep(0.5)
         self.show3(f"brightness: {ddcutil.get_vcp_value(ddcutil.CONTRAST)}")
 
+    def set_voice_threshold(self, increment):
+        vt = Config.get('voice.threshold', 70) + increment
+        vt = max(0, min(vt, 100))
+        Config.set('voice.threshold', vt)
+
     def load_help(self):
-        with open(os.path.join(Config.RESOURCES, "help.txt"), "r") as f:
+        with open(os.path.join(Config.RESOURCES_HELP, "help.txt"), "r") as f:
             help = f.read()
         return help
 

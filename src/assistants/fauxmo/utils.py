@@ -12,7 +12,7 @@ import uuid
 from importlib.abc import Loader
 from types import ModuleType
 
-from alexa.fauxmo import logger
+from assistants.fauxmo import logger
 
 
 def get_local_ip(ip_address: str | None = None) -> str:

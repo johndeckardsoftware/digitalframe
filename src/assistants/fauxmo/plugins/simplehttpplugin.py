@@ -18,8 +18,8 @@ from collections.abc import Mapping
 from http.cookiejar import CookieJar
 from urllib.error import HTTPError
 
-from alexa.fauxmo import logger
-from alexa.fauxmo.plugins import FauxmoPlugin
+from assistants.fauxmo import logger
+from assistants.fauxmo.plugins import FauxmoPlugin
 
 
 class SimpleHTTPPlugin(FauxmoPlugin):

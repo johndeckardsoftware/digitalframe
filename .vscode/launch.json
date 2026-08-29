@@ -17,6 +17,14 @@
             "request": "launch",
             "program": "src/df.py",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Python Debugger: tp.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "test/tp.py",
+            "console": "integratedTerminal",
+            "args": ["-c", "pippo.json", "--log", "pluto.log"]
         }
     ]
 }

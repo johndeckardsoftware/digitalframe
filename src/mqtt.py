@@ -1,7 +1,7 @@
 
 import logging
 import json, os, ssl
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import paho.mqtt.client as mqtt
 from config import Config
 from utils.metrics import get_cpu_temp
@@ -84,13 +84,12 @@ class MQTT:
 
     def on_disconnect(
         self,
-        _client: mqtt.Client,
-        _userdata: object,
-        _disconnect_flags: mqtt.DisconnectFlags,
-        reason_code: mqtt.ReasonCode | int | None,
-        _properties: Optional[mqtt.Properties] = None,
+        client: mqtt.Client,
+        userdata: object,
+        reason_code: mqtt.ReasonCodes | int | None,
+        properties: Optional[mqtt.Properties] = None,
     ):
-        if isinstance(reason_code, mqtt.ReasonCode):
+        if isinstance(reason_code, mqtt.ReasonCodes):
             reason_code_str = f"{reason_code} (value: {reason_code.value})"
         else:
             reason_code_str = str(reason_code)
@@ -100,13 +99,13 @@ class MQTT:
     def on_connect(
         self,
         client: mqtt.Client,
-        _userdata: object,
-        _flags: mqtt.ConnectFlags,
-        reason_code: mqtt.ReasonCode | int,
-        _properties: Optional[mqtt.Properties] = None,
+        userdata: object,
+        flags: Dict[str, Any],
+        reason_code: mqtt.ReasonCodes | int,
+        properties: Optional[mqtt.Properties] = None,
     ):
         if reason_code != 0:
-            if isinstance(reason_code, mqtt.ReasonCode):
+            if isinstance(reason_code, mqtt.ReasonCodes):
                 reason_code_str = f"{reason_code} (value: {reason_code.value})"
             else:
                 reason_code_str = str(reason_code)

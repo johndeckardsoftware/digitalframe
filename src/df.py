@@ -94,8 +94,8 @@ class DigitalFrame:
         self.devices = Devices(self)
         self.mqtt = None
         self._publish_state = None
-        # alexa
-        self.alexa = None
+        # menu voice assistant
+        self.voice_assistant = None
         # plugins
         self.plugins = None
         # sound
@@ -172,7 +172,7 @@ class DigitalFrame:
 
         if self.fullscreen: set_window_state(ConfigFlags.FLAG_WINDOW_UNDECORATED|ConfigFlags.FLAG_WINDOW_TOPMOST)
         else: set_window_state(ConfigFlags.FLAG_WINDOW_RESIZABLE)
-        init_window(self.width, self.height, "DigitalFrame v1.1")
+        init_window(self.width, self.height, "DigitalFrame v2.0")
         if self.fullscreen: disable_cursor()
         self.monitor = get_current_monitor()
         if self.fullscreen:
@@ -184,7 +184,7 @@ class DigitalFrame:
 
         self.load_icon()
 
-        self.font = load_font(os.path.join(Config.RESOURCES, Config.get('window.font', "LiberationMono-Regular.ttf")))
+        self.font = load_font(os.path.join(Config.RESOURCES_FONT, Config.get('window.font', "LiberationMono-Regular.ttf")))
 
         self.shader = create_shader(self)
 
@@ -192,10 +192,12 @@ class DigitalFrame:
 
         self.mqtt_init()
 
-        if Config.get('alexa.fauxmo.enabled', False) or Config.get('alexa.speech2text.enabled', False):
-            from dfalexa import Alexa
-            self.alexa = Alexa(self.this, os.path.join(Config.RESOURCES, "fauxmo.json"))
-            self.alexa.run()
+        if (Config.get('voice.esp32s3.enabled', False) or
+            Config.get('voice.alexa.enabled', False) or
+            Config.get('voice.fauxmo.enabled', False)):
+            from voice import VoiceAssistant
+            self.voice_assistant = VoiceAssistant(self.this, os.path.join(Config.RESOURCES_CONFIG, "fauxmo.json"))
+            self.voice_assistant.run()
 
         set_target_fps(clock.fps)
         while not window_should_close() and self.keep_looping:
@@ -365,7 +367,7 @@ motion={self.motion}, {self.debug}"
 
     def draw_remote_help(self):
         if not self.help:
-            help = load_image(os.path.join(Config.RESOURCES, Config.get('boxput.help', "boxput.png")))
+            help = load_image(os.path.join(Config.RESOURCES_HELP, Config.get('boxput.help', "boxput.png")))
             resize_to_percentage(help, self.width, self.height, 60)
             self.help = load_texture_from_image(help)
             help = unload_image(help)
@@ -381,7 +383,7 @@ motion={self.motion}, {self.debug}"
             self.hdmi_power = 4
 
     def load_icon(self):
-        icon = load_image(os.path.join(Config.RESOURCES, "icon.png"))
+        icon = load_image(os.path.join(Config.RESOURCES_ICON, "icon.png"))
         set_window_icon(icon)
         icon = unload_image(icon)
 
@@ -404,8 +406,8 @@ motion={self.motion}, {self.debug}"
                 self.devices.stop()
             if self.mqtt:
                 self.mqtt.stop()
-            if self.alexa:
-                self.alexa.stop()
+            if self.voice_assistant:
+                self.voice_assistant.stop()
             if self.on_exit_save_config:
                 Config.save()
             self.logger.info("stopped.")

@@ -14,10 +14,10 @@ import pathlib
 import sys
 from functools import partial
 
-from alexa.fauxmo import __version__, logger
-from alexa.fauxmo.plugins import FauxmoPlugin
-from alexa.fauxmo.protocols import Fauxmo, SSDPServer
-from alexa.fauxmo.utils import (
+from assistants.fauxmo import __version__, logger
+from assistants.fauxmo.plugins import FauxmoPlugin
+from assistants.fauxmo.protocols import Fauxmo, SSDPServer
+from assistants.fauxmo.utils import (
     get_local_ip,
     get_unused_port,
     make_udp_sock,

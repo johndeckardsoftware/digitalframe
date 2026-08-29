@@ -38,7 +38,7 @@ class OnScreenMenu:
         self.font_h = 28 * scale
 
     def load_menus(self):
-        with open(os.path.join(Config.RESOURCES, "menus.json"), "r") as f:
+        with open(os.path.join(Config.RESOURCES_MENU, Config.get('window.menu.menus', "menus_en.json")), "r") as f:
             menus = json.load(f)
 
         # add select folders menu

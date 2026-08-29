@@ -1,3 +1,5 @@
+* Refactoring resource folder (johndeckardsoftware, 2026-08-31)
+* Added integration with Local Offline Speech Recognition (Vosk + ESP32-S3 / UDP Node) (johndeckardsoftware, 2026-08-31)
 * Added integration with Alexa (johndeckardsoftware, 2026-08-10)
 * Create raspberry_run.md (johndeckardsoftware, 2026-07-02)
 * Changed version to 1.1 (johndeckardsoftware, 2026-06-30)

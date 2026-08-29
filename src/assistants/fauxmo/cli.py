@@ -6,8 +6,8 @@ Provides console_script via argparse.
 import argparse
 import sys
 
-from alexa.fauxmo import __version__, logger
-from alexa.fauxmo.fauxmo import main
+from assistants.fauxmo import __version__, logger
+from assistants.fauxmo.fauxmo import main
 
 try:
     import uvloop
