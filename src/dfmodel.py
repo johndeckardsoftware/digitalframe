@@ -56,7 +56,7 @@ class DFItemModel:
 
         if self.bg_texture_file:
             if not os.path.isabs(self.bg_texture_file):
-                self.bg_texture_file = os.path.join(Config.RESOURCES, self.bg_texture_file)
+                self.bg_texture_file = os.path.join(Config.RESOURCES_3D, self.bg_texture_file)
             image = load_image(self.bg_texture_file)
             image_resize(image, df.width, df.height)
             if df.texture: df.texture = unload_texture(df.texture)

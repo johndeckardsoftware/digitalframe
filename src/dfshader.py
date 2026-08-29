@@ -10,7 +10,7 @@ class ShaderWrapper:
     def __init__(self, digitalframe, fs_name, vs_name=None):
         self.df = digitalframe
         self.name = fs_name
-        self.fs_path =  os.path.join(Config.RESOURCES, f"{fs_name}.fs")
+        self.fs_path =  os.path.join(Config.RESOURCES_SHADER, f"{fs_name}.fs")
         self.config = Config.get(f'shader.{self.name}', {})
         if not vs_name: vs_path = ffi.NULL
         self.shader = load_shader(vs_path, self.fs_path)

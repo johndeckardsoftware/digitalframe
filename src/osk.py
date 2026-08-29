@@ -27,7 +27,7 @@ class OnScreenKeyboard:
     def load_layout(self, layout):
         if not layout:
             layout = Config.get('window.menu.osk_layout', "osk_en_layout.json")
-        with open(os.path.join(Config.RESOURCES, layout), "r") as f:
+        with open(os.path.join(Config.RESOURCES_MENU, layout), "r") as f:
             return json.load(f)
 
     def set_style_size(self, scale):
