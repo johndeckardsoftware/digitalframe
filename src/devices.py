@@ -120,7 +120,7 @@ class Devices:
             self.menu.update(key)
             return
 
-        if self.plugins.use_keyboard:
+        if self.plugins and self.plugins.use_keyboard:
             self.plugins.keyboard(key)
             #return
 
