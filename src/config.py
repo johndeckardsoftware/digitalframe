@@ -187,12 +187,12 @@ def config_setup(create_md=False):
 
     try:
         exec(make_config)
-        plugins_config = os.path.join(Config.WORK_PATH, "src/resources/plug_config.json")
+        plugins_config = os.path.join(Config.RESOURCES_CONFIG, "plug_config.json")
         if os.path.exists(plugins_config):
             with open(plugins_config, "r", encoding="utf-8") as f: pc = json.load(f)
             Config.set('plugins', pc)
             Config.save()
-        cloud_config = os.path.join(Config.WORK_PATH, "src/resources/cloud_config.json")
+        cloud_config = os.path.join(Config.RESOURCES_CONFIG, "cloud_config.json")
         if os.path.exists(cloud_config):
             with open(cloud_config, "r", encoding="utf-8") as f: cc = json.load(f)
             Config.set('cloud', cc)
