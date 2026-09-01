@@ -80,7 +80,10 @@ Simple digital frame application developed in Python using [raylib](https://elec
 
 ## **⚙️ Media file updates**
 
-The FolderWatch module will detect new files and add them to the slideshow instantly.
+The FolderWatch module will detect new files and add them to the slideshow instantly. Media files can be updated remotely through the following methods:
+
+* **Network Share (Samba):** Share your local media folder over SMB to easily drop new photos/videos from Windows, macOS, or mobile apps like Cx File Explorer. See [samba.md](https://www.google.com/search?q=samba.md) for setup instructions.
+* **Cloud Sync (Rclone):** Automatically synchronize media folders from cloud providers like Google Drive, OneDrive, or Dropbox on a scheduled basis. See [cloud.md](cloud.md) for configuration details.
 
 ## **🤝 Contributing & Bug Reports**
 
