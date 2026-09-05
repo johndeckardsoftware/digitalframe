@@ -38,7 +38,7 @@ class OnScreenMenu:
         self.font_h = 28 * scale
 
     def load_menus(self):
-        with open(os.path.join(Config.RESOURCES_MENU, Config.get('window.menu.menus', "menus_en.json")), "r") as f:
+        with open(os.path.join(Config.RESOURCES_MENU, Config.get('window.menu.menus', "menus_en.json")), "r", encoding="UTF-8") as f:
             menus = json.load(f)
 
         # add select folders menu
@@ -144,6 +144,13 @@ class OnScreenMenu:
         self.is_osk = 'vk' in option
         self.in_osk = False
         return option
+
+    def select(self, text):
+        for index, option in enumerate(self.options):
+            if "t" in option and option["t"] == text:
+                self.selected = index
+                return index
+        return -1
 
     def draw(self):
         # Draw a semi-transparent background overlay

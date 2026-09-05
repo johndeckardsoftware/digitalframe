@@ -27,7 +27,9 @@ substitutions:
   key3_exio: '11'           # volume up
 
   done_sound_file: './sounds/done.wav'
-  unknown_sound_file: './sounds/unknown.wav'
+  ok_sound_file: './sounds/ok.wav'
+  ko_sound_file: './sounds/ko.wav'
+  err_sound_file: './sounds/err.wav'
 
   # Onboard amplifier volume clamps. The little speaker distorts near the top,
   # so the media player is limited to this window (0.0 - 1.0).
@@ -96,31 +98,52 @@ udp:
       then:
         - lambda: |-
             id(digitalframe_server).publish_state(1.0f);
-            id(udp_streaming_active) = false;
             std::string msg(data.begin(), data.end());
-            ESP_LOGI("udp_rx", "Received command: %s", msg.c_str());
+            ESP_LOGD("udp_rx", "Received command: %s", msg.c_str());
             
             auto call = id(status_ring).make_call();
             call.set_state(true);
             call.set_effect("None");        // Clears any active pulse/effect
             call.set_brightness(0.9f);
             id(amp_enable).turn_on();       // Turn on the amplifier switch
+
+            bool is_terminal = false;
+
             if (msg == "done") {
+              id(udp_streaming_active) = false;
               call.set_red(0.0f);
               call.set_green(1.0f);
               call.set_blue(0.0f);
               call.perform();
               id(external_media_player)->play_file(id(done_sound), false, false);
-            } else if (msg == "unknown") {
+              is_terminal = true;
+            } else if (msg == "ok") {
+              id(external_media_player)->play_file(id(ok_sound), false, false);
+            } else if (msg == "ko") {
+              id(external_media_player)->play_file(id(ko_sound), false, false);
+            } else if (msg == "err") {
+              id(udp_streaming_active) = false;
               call.set_red(1.0f);
               call.set_green(0.0f);
               call.set_blue(0.0f);
-              call.perform();              
-              id(external_media_player)->play_file(id(unknown_sound), false, false);
+              call.perform();
+              id(external_media_player)->play_file(id(err_sound), false, false);
+              is_terminal = true;
             }
-        - delay: 2s
-        - light.turn_off: status_ring
-          
+
+            // Schedule the light to turn off after 2000ms only for 'done' or 'err'
+            if (is_terminal) {
+              // Re-enable wake word detection
+              id(mww).start();
+              
+              // Call set_timeout on App.scheduler
+              App.scheduler.set_timeout(id(status_ring), "turn_off_ring", 2000, []() {
+                auto off_call = id(status_ring).make_call();
+                off_call.set_state(false);
+                off_call.perform();
+              });
+            }
+
 captive_portal:
 
 i2c:
@@ -243,7 +266,7 @@ micro_wake_word:
   id: mww
   microphone:
     microphone: i2s_mics
-  stop_after_detection: false
+  stop_after_detection: true
   task_stack_in_psram: true
   models:
     - model: https://github.com/esphome/micro-wake-word-models/raw/main/models/v2/alexa.json
@@ -613,5 +636,9 @@ media_player:
     files:
       - id: done_sound
         file: ${done_sound_file}  
-      - id: unknown_sound
-        file: ${unknown_sound_file}
+      - id: ok_sound
+        file: ${ok_sound_file}
+      - id: ko_sound
+        file: ${ko_sound_file}
+      - id: err_sound
+        file: ${err_sound_file}

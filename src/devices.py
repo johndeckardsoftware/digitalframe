@@ -300,7 +300,6 @@ class Devices:
     # menu update functions
     def set_folder(self, index):
         df = self.df
-        logger.info(f"{index=}, folder={self.dir_list[index]}")
         df.items.set_subfolder(self.dir_list[index])
         self.show3(df.items.subfolder)
         if df.item: df.item.skip()

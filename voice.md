@@ -144,7 +144,7 @@ When a voice phrase is received by `on_speech_received(text, locale)` from eithe
 1. **Pre-calculated Fuzzy Menu Matching:** The handler checks incoming text against pre-calculated menu targets using `rapidfuzz.process.extractOne()` with `fuzz.WRatio`. If the similarity score exceeds `voice.threshold`, it executes the assigned function (`option["f"]`) or triggers a keypress (`option["k"]`).
 
 
-2. **Action Modifier Prefixes (`wta`):** Handles prefix actions (e.g., `"incrementa"`, `"decrementa"`) to adjust spinbox parameters (`option["fr"]`, `option["fl"]`).
+2. **Action Modifier Prefixes (`action_selection_word`):** Handles prefix actions (e.g., `"incrementa"`, `"decrementa"`) to adjust spinbox parameters (`option["fr"]`, `option["fl"]`).
 3. **Fallback Actions:** Custom keyword fallbacks (e.g., `"pausa"`, `"avanti"`, `"indietro"`) map directly to core display functions.
 
 ---

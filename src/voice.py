@@ -1,5 +1,6 @@
 import asyncio
 import os, threading, logging
+import subprocess, re
 from config import Config
 from assistants.fauxmo.fauxmo import main as fauxmo_main
 from assistants.alexa.speech2text import AlexaSpeechBackend
@@ -12,9 +13,13 @@ logger = logging.getLogger(__name__)
 class VoiceAssistant():
     def __init__(self, digitalframe, config_path):
         logger.setLevel(Config.get("window.log_level", logging.INFO))
+        #logger.setLevel(logging.DEBUG)
         self.df = digitalframe
         self.config_path = config_path
         self.verbosity = Config.get("window.log_level", logging.INFO)
+
+        # menu class ref
+        self.menu = digitalframe.devices.menu
 
         # Cache structure for rapid string matching
         self._cached_menu_texts = []
@@ -34,37 +39,47 @@ class VoiceAssistant():
         self.fauxmo_enabled = Config.get('voice.fauxmo.enabled', False)
         self.alexa_enabled = Config.get('voice.alexa.enabled', False)
         self.esp32s3_enabled = Config.get('voice.esp32s3.enabled', False)
+        self.piper_enabled = Config.get('voice.piper.enabled', False)
+
+    def eval_menu_text(self, option):
+        item_text = ""
+        if "t" in option:
+            item_text = option["t"]
+        elif "g" in option:
+            try:
+                item_text = eval(option["g"], {"self": self.menu, "Config": Config, "ddcutil": ddcutil})
+            except Exception:
+                item_text = option["g"]
+        elif "e" in option:
+            try:
+                item_text = eval(option["e"], {"self": self.menu, "Config": Config, "ddcutil": ddcutil})
+            except Exception:
+                item_text = option["e"]
+
+        return item_text
 
     def refresh_menu_cache(self):
         """
         Pre-calculates and flattens all selectable menu texts into single indexed lists
         so fuzzy search can match across the whole menu corpus in a single operation.
         """
-        menu_obj = self.df.devices.menu
         texts = []
         options_ref = []
 
-        for menu_name, options in menu_obj.menus.items():
-            if not isinstance(options, list) or menu_name == "wta":
+        for menu_name, options in self.menu.menus.items():
+            if not isinstance(options, list) or menu_name == "pre_action_selection_word" or menu_name == "action_selection_word":
                 continue
 
             for option in options:
-                item_text = ""
-                if "t" in option:
-                    item_text = option["t"]
-                elif "g" in option:
-                    try:
-                        item_text = eval(option["g"], {"self": menu_obj, "Config": Config})
-                    except Exception:
-                        item_text = option["g"]
-                elif "e" in option:
-                    try:
-                        item_text = eval(option["e"], {"self": menu_obj, "Config": Config})
-                    except Exception:
-                        item_text = option["e"]
+                item_text = self.eval_menu_text(option)
 
                 clean_text = item_text.lower().strip()
                 if clean_text:
+                    clean_text = re.sub(r"\s*\(.*?\)", "", clean_text)
+                    clean_text = re.sub(r"\s*<.*?>", "", clean_text)
+                    clean_text = re.sub(r"\.[^.]+$", "", clean_text)
+                    clean_text = re.sub(r"[\"']", "", clean_text)
+
                     texts.append(clean_text)
                     options_ref.append(option)
 
@@ -80,75 +95,116 @@ class VoiceAssistant():
         words = []
         try:
             for text in self._cached_menu_texts:
-                # Remove non-word formatting artifacts
-                clean_text = text
-                for char in ["<", ">", "(", ")", "\"", "'"]:
-                    clean_text = clean_text.replace(char, "")
-
-                clean_text = clean_text.strip()
+                clean_text = text.strip()
                 if clean_text:
                     # Add full phrase as well as individual token words
                     words.append(clean_text)
                     words.extend(clean_text.split())
 
-            # Also include action words from wta mapping if present
-            wta_list = self.df.devices.menu.menus.get("wta", [])
-            for action in wta_list:
+            # Also include action words from 'pre_action_selection_word' and 'action_selection_word' mapping if present
+            asw_list = self.df.devices.menu.menus.get("pre_action_selection_word", [])
+            for action in asw_list:
+                if action and isinstance(action, list):
+                    words.append(action[0].lower().strip())
+
+            asw_list = self.df.devices.menu.menus.get("action_selection_word", [])
+            for action in asw_list:
                 if action and isinstance(action, list):
                     words.append(action[0].lower().strip())
 
         except Exception as e:
-            logger.warning(f"Could not extract dynamic menu words: {e}")
+            logger.warning(f"Could not extract menu words: {e}")
 
         return list(set(words))
 
     def on_speech_received(self, text: str, locale: str):
         """Callback triggered when a voice command is captured by AlexaSpeechBackend or VoskSpeechBackend."""
-        logger.info(f"Executing Speech command: '{text}'")
+        logger.debug(f"Executing Speech command: '{text}'")
 
         command = text.lower().strip()
-        response_text = "done"
-
-        menu_obj = self.df.devices.menu
 
         # Build cache on first run if not already present
         if not self._cached_menu_texts:
             self.refresh_menu_cache()
 
-        # Manage word-to-menu action (f, fl, fr)
+        # Manage pre action selection word  (fs)
+        pre_action = ""
+        word_action_list = self.menu.menus.get("pre_action_selection_word", [])
+        for word_action in word_action_list:
+            if command.startswith(word_action[0]):
+                command = command.replace(word_action[0], "", 1).strip()
+                pre_action = word_action[1]
+        logger.debug(f"{pre_action=}")
+
+        # Manage action selection word  (f, fl, fr)
         action = "f"
-        word_action_list = menu_obj.menus.get("wta", [])
+        word_action_list = self.menu.menus.get("action_selection_word", [])
         for word_action in word_action_list:
             if command.startswith(word_action[0]):
                 command = command.replace(word_action[0], "", 1).strip()
                 action = word_action[1]
         logger.debug(f"{action=}")
 
+        response = "ok"
+        speech = ""
         # Execute single RapidFuzz search across all pre-calculated commands at once
         match = process.extractOne(command, self._cached_menu_texts, scorer=fuzz.WRatio)
-
         if match and match[1] >= Config.get("voice.threshold", 90):
             matched_text, score, index = match
             option = self._cached_menu_options[index]
-
             logger.info(f"Matched voice command '{matched_text}' ({score}) with menu item: {option}")
 
-            # Execute key press if defined in option
-            if "k" in option:
+            if "k" in option:       # Execute key press
+                self.menu.in_action = True
                 self.df.devices.send_keys(option["k"])
-                return response_text
+                self.menu.in_action = False
 
-            # Execute python function string if provided in option
-            if action in option:
+            elif 'm' in option:     # Select current menu
+                self.menu.set_menu(option["m"])
+
+            elif action in option:    # Execute python function string
                 try:
-                    exec(option[action], {"self": menu_obj, "Config": Config, "ddcutil": ddcutil})
-                    return response_text
-                except Exception as e:
-                    response_text = f"Error executing menu function '{option[action]}': {e}"
-                    logger.error(response_text)
-                    return response_text
+                    self.menu.in_action = True
+                    if pre_action == "fs":  # simulate item manual selection
+                        ret = self.menu.select(command)
 
-        return "unknown"
+                    ret = eval(option[action], {"self": self.menu, "Config": Config, "ddcutil": ddcutil})
+                    logger.debug(f"eval ret: {ret}")
+                    if ret and ret == "stop":
+                        response = "done"
+                    self.menu.in_action = False
+
+                except Exception as e:
+                    speech = f"Error executing menu function '{option[action]}': {e}"
+                    logger.error(speech)
+                    response = "err"
+
+            if self.piper_enabled:
+                if response == "ok":
+                    speech = self.eval_menu_text(option)
+                    logger.debug(f"{speech=}")
+                    if speech:
+                        self.speak(speech)
+        else:
+            response = "ko"
+
+        return response
+
+    def speak(self, text):
+        # nice but too slow
+        path = Config.get('voice.piper.path', 'piper')
+        model_path = os.path.join(Config.RESOURCES_PIPER, Config.get('voice.piper.model_path', 'it_IT-paola-medium.onnx'))
+        logger.debug(f"{path=} {model_path=}")
+        # Pipe synthesized audio directly to aplay for zero-latency playback
+        piper_cmd = [path, "--model", model_path, "--output-raw"]
+        aplay_cmd = ["aplay", "-r", "22050", "-f", "S16_LE", "-t", "raw"]
+
+        piper_proc = subprocess.Popen(piper_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        aplay_proc = subprocess.Popen(aplay_cmd, stdin=piper_proc.stdout)
+
+        piper_proc.stdin.write(text.encode('utf-8'))
+        piper_proc.stdin.close()
+        aplay_proc.wait()
 
     def run(self):
         # 1. Start Fauxmo if enabled
@@ -186,9 +242,9 @@ class VoiceAssistant():
 
             udp_ip = Config.get('voice.esp32s3.host', '0.0.0.0')
             udp_port = Config.get('voice.esp32s3.port', 5005)
-            esp32_ip = Config.get('voice.esp32s3.esp32_ip', '192.168.10.45')
+            esp32_ip = Config.get('voice.esp32s3.esp32_ip', '192.168.1.2')
             esp32_port = Config.get('voice.esp32s3.esp32_port', 5005)
-            vocabulary = Config.get('voice.esp32s3.vocabulary', False)
+            vocabulary = Config.get('voice.esp32s3.vocabulary', True)
 
             if vocabulary:
                 menu_vocab = self.extract_menu_vocabulary()

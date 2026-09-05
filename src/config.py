@@ -56,6 +56,7 @@ class Config:
         Config.RESOURCES_MENU = os.path.join(Config.RESOURCES, 'menu')
         Config.RESOURCES_SHADER = os.path.join(Config.RESOURCES, 'shader')
         Config.RESOURCES_VOSK = os.path.join(Config.RESOURCES, 'vosk')
+        Config.RESOURCES_PIPER = os.path.join(Config.RESOURCES, 'piper')
 
         return True
 

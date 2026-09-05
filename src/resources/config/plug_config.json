@@ -26,7 +26,7 @@
                 "f": "@toggle_active()"
             },
             {
-                "e": "f'Set Weather mode < ({@mode}) >'",
+                "e": "f'Weather Mode < ({@mode}) >'",
                 "fl": "@get_next_mode(-1)",
                 "fr": "@get_next_mode(1)"
             }

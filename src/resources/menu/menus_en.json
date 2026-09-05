@@ -76,13 +76,18 @@
         {"t": "forward", "k": "KEY_F5"},
         {"t": "next", "k": "KEY_F5"},
         {"t": "previous", "k": "KEY_F4"},
-        {"t": "options", "f": "self.df.devices.keyboard(self.df.devices.key_kb_menu)"}
+        {"t": "options", "f": "self.df.devices.keyboard(self.df.devices.key_kb_menu)"},
+        {"t": "menu", "f": "self.df.devices.keyboard(self.df.devices.key_kb_menu)"},
+        {"t": "stop", "f": "'stop'"}
     ],
 
-    "wta": [
+    "action_selection_word": [
         ["increment", "fr"],
         ["decrement", "fl"],
         ["set", "s"]
-    ]
+    ],
 
+    "pre_action_selection_word": [
+        ["set", "fs"]
+    ]
 }

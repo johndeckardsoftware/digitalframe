@@ -9,16 +9,16 @@
         {"t": "Sveglia", "k": "KEY_F8"},
         {"g": "f'Luce Ambiente ({self.on_off(self.df.ambient_light)})'", "k": "KEY_L"},
         {"t": "Configurazione Luce", "m": "light"},
-        {"g": "f'Selezione cartella ({self.df.items.get_subfolder()})'", "m": "folders"},
-        {"g": "f'Selezione Bordo ({Config.get(\"items.types.image.border.file\", None)})'", "m": "borders"},
-        {"g": "f'Selezione Passepartout ({Config.get(\"items.types.image.matte.texture\", None)})'", "m": "mattes"},
+        {"g": "f'Seleziona cartella ({self.df.items.get_subfolder()})'", "m": "folders"},
+        {"g": "f'Seleziona Bordo ({Config.get(\"items.types.image.border.file\", None)})'", "m": "borders"},
+        {"g": "f'Seleziona Passepartout ({Config.get(\"items.types.image.matte.texture\", None)})'", "m": "mattes"},
         {"e": "f'Tempo visualizzazione immagine < {self.df.image_ttl} > sec.'", "fl": "self.devices.set_ttl(-10)", "fr": "self.devices.set_ttl(10)"},
         {"e": "f'Tempo sospensione automatica < {self.df.hdmi_off_timeout} > min.'", "fl": "self.devices.set_sleep(-5)", "fr": "self.devices.set_sleep(5)"},
         {"g": "f'Riproduzione casuale ({self.on_off(self.df.items.get_shuffle())})'", "k": "KEY_S"},
-        {"t": "Informazioni Immagine", "m": "meta"},
+        {"t": "Metadati Immagine", "m": "meta"},
         {"t": "Orologio", "k": "KEY_C"},
         {"t": "Estensioni", "m": "plugins"},
-        {"t": "Altri Strumenti", "m": "debug" }
+        {"t": "Altri Strumenti", "m": "debug"}
     ],
     "menu_sel": 0,
     "light": [
@@ -42,7 +42,7 @@
         {"g": "f'Data ({self.df.items.get_show_text(\"date\")})'", "k": "KEY_FOUR"},
         {"g": "f'Posizione ({self.df.items.get_show_text(\"location\")})'", "k": "KEY_FIVE"},
         {"g": "f'Cartella ({self.df.items.get_show_text(\"directory\")})'", "k": "KEY_SIX"},
-        {"t": "Nessuna informazione", "k": "KEY_ZERO"},
+        {"t": "Reset metadati", "k": "KEY_ZERO"},
         {"t": "Indietro", "back": true, "m": "menu"}
     ],
     "meta_sel": 0,
@@ -76,14 +76,17 @@
         {"t": "avanti", "k": "KEY_F5"},
         {"t": "prossima", "k": "KEY_F5"},
         {"t": "precedente", "k": "KEY_F4"},
-        {"t": "opzioni", "f": "self.df.devices.keyboard(self.df.devices.key_kb_menu)"}
+        {"t": "opzioni", "f": "self.df.devices.keyboard(self.df.devices.key_kb_menu)"},
+        {"t": "menu", "f": "self.df.devices.keyboard(self.df.devices.key_kb_menu)"},
+        {"t": "stop", "f": "'stop'"}
     ],
 
-    "wta": [
-        ["incrementa", "fr"],
-        ["incremento", "fr"],
-        ["decrementa", "fl"],
-        ["decremento", "fl"],
-        ["imposta", "s"]
+    "action_selection_word": [
+        ["aumenta", "fr"],
+        ["diminuisci", "fl"]
+    ],
+
+    "pre_action_selection_word": [
+        ["imposta", "fs"]
     ]
 }

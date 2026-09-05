@@ -16,9 +16,9 @@ class VoskSpeechBackend:
         self,
         udp_ip: str = "0.0.0.0",
         udp_port: int = 5005,
-        esp32_ip: str = "192.168.10.45",
+        esp32_ip: str = "192.168.1.2",
         esp32_port: int = 5005,
-        model_path: str = "src/model",
+        model_path: str = "",
         sample_rate: int = 16000,
         vocabulary: Optional[list] = None,
         on_speech_callback = None
@@ -81,17 +81,20 @@ class VoskSpeechBackend:
                 if data and self.recognizer.AcceptWaveform(data):
                     result = json.loads(self.recognizer.Result())
                     text = result.get("text", "").strip()
-
                     if text and text != "[unk]":
                         logger.info(f"Vosk Final Recognition: '{text}'")
 
                         # Execute speech callback function
-                        status_response = "done"
+                        response = "stop"
                         if self.on_speech_callback:
-                            status_response = self.on_speech_callback(text, "en-US")
+                            response = self.on_speech_callback(text, "en-US")
 
-                        # Notify ESP32 to turn off streaming or trigger response sound
-                        self.send_status_udp(status_response)
+                        # Notify ESP32 with the following codes:
+                        #   "ok": command processed, wait for the next command or 'stop' command to close mic.
+                        #   "ko": command not recognized, wait for the next command or 'stop' command to close mic.
+                        #   "err": error during command execution. close mic.
+                        #   "done": 'stop' command processed. close mic.
+                        self.send_status_udp(response)
 
             except socket.timeout:
                 continue
