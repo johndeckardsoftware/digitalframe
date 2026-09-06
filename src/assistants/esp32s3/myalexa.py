@@ -49,7 +49,7 @@ class VoskSpeechBackend:
             if "[unk]" not in clean_vocab:
                 clean_vocab.append("[unk]")
 
-            vocab_json = json.dumps(clean_vocab)
+            vocab_json = json.dumps(clean_vocab, ensure_ascii=False)
             logger.info(f"Vosk constrained with {len(clean_vocab)} vocabulary tokens.")
             self.recognizer = KaldiRecognizer(self.model, self.sample_rate, vocab_json)
         else:

@@ -7,6 +7,8 @@ from assistants.alexa.speech2text import AlexaSpeechBackend
 from assistants.esp32s3.myalexa import VoskSpeechBackend
 import utils.ddcutil as ddcutil
 from rapidfuzz import process, fuzz
+from text_to_num import text2num
+from num2words2 import num2words
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,7 @@ class VoiceAssistant():
         self.df = digitalframe
         self.config_path = config_path
         self.verbosity = Config.get("window.log_level", logging.INFO)
+        self.lang = Config.get("voice.lang", "en")
 
         # menu class ref
         self.menu = digitalframe.devices.menu
@@ -102,15 +105,19 @@ class VoiceAssistant():
                     words.extend(clean_text.split())
 
             # Also include action words from 'pre_action_selection_word' and 'action_selection_word' mapping if present
-            asw_list = self.df.devices.menu.menus.get("pre_action_selection_word", [])
+            asw_list = self.menu.menus.get("pre_action_selection_word", [])
             for action in asw_list:
                 if action and isinstance(action, list):
                     words.append(action[0].lower().strip())
 
-            asw_list = self.df.devices.menu.menus.get("action_selection_word", [])
+            asw_list = self.menu.menus.get("action_selection_word", [])
             for action in asw_list:
                 if action and isinstance(action, list):
                     words.append(action[0].lower().strip())
+
+            # Also include numbers from 0 to 255
+            for n in range(0, 255):
+                words.append(num2words(n, lang=self.lang))
 
         except Exception as e:
             logger.warning(f"Could not extract menu words: {e}")
@@ -129,24 +136,36 @@ class VoiceAssistant():
 
         # Manage pre action selection word  (fs)
         pre_action = ""
-        word_action_list = self.menu.menus.get("pre_action_selection_word", [])
-        for word_action in word_action_list:
-            if command.startswith(word_action[0]):
-                command = command.replace(word_action[0], "", 1).strip()
-                pre_action = word_action[1]
-        logger.debug(f"{pre_action=}")
+        pre_word_action_list = self.menu.menus.get("pre_action_selection_word", [])
+        for word, _pre_action_ in pre_word_action_list:
+            if command.startswith(word):
+                command = command.replace(word, "", 1).strip()
+                pre_action = _pre_action_
+                break
+        logger.debug(f"{pre_action=} {command=}")
 
         # Manage action selection word  (f, fl, fr)
         action = "f"
         word_action_list = self.menu.menus.get("action_selection_word", [])
-        for word_action in word_action_list:
-            if command.startswith(word_action[0]):
-                command = command.replace(word_action[0], "", 1).strip()
-                action = word_action[1]
-        logger.debug(f"{action=}")
+        for word, _action_ in word_action_list:
+            if command.startswith(word):
+                command = command.replace(word, "", 1).strip()
+                action = _action_
+                break
+        logger.debug(f"{action=} {command=}")
 
-        response = "ok"
+        response = "ko"
         speech = ""
+
+        if pre_action == "fn" or pre_action == "fm":  # set self.number. use "for" pre control word to use that with action 'fv'
+            try:
+                self.menu.number = text2num(command, lang=self.lang)
+                if pre_action == "fm": self.menu.number = self.menu.number * -1
+                logger.debug(f"{pre_action=} {self.menu.number=}")
+                response = "ok"
+            except Exception as e:
+                logger.error(f"{e}")
+
         # Execute single RapidFuzz search across all pre-calculated commands at once
         match = process.extractOne(command, self._cached_menu_texts, scorer=fuzz.WRatio)
         if match and match[1] >= Config.get("voice.threshold", 90):
@@ -154,24 +173,27 @@ class VoiceAssistant():
             option = self._cached_menu_options[index]
             logger.info(f"Matched voice command '{matched_text}' ({score}) with menu item: {option}")
 
-            if "k" in option:       # Execute key press
+            if 'k' in option:       # Execute key press
                 self.menu.in_action = True
-                self.df.devices.send_keys(option["k"])
+                self.df.devices.send_keys(option['k'])
                 self.menu.in_action = False
+                response = "ok"
 
             elif 'm' in option:     # Select current menu
-                self.menu.set_menu(option["m"])
+                self.menu.set_menu(option['m'])
+                response = "ok"
 
             elif action in option:    # Execute python function string
                 try:
                     self.menu.in_action = True
+
                     if pre_action == "fs":  # simulate item manual selection
                         ret = self.menu.select(command)
 
                     ret = eval(option[action], {"self": self.menu, "Config": Config, "ddcutil": ddcutil})
                     logger.debug(f"eval ret: {ret}")
-                    if ret and ret == "stop":
-                        response = "done"
+                    response = "done" if ret and ret == "stop" else "ok"
+
                     self.menu.in_action = False
 
                 except Exception as e:
@@ -185,8 +207,6 @@ class VoiceAssistant():
                     logger.debug(f"{speech=}")
                     if speech:
                         self.speak(speech)
-        else:
-            response = "ko"
 
         return response
 

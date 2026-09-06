@@ -312,8 +312,8 @@ class DigitalFrame:
         self.brightness_normalized = self.brightness / 128.0
         if self.brightness != b: self.publish_state()
 
-    def set_lux_adj(self, value):
-        self.lux_adj += value
+    def set_lux_adj(self, value, delta=True):
+        self.lux_adj = self.lux_adj + value if delta else value
         Config.set('window.lux_adjustment', self.lux_adj)
         self.set_brightness(self.lux)
 

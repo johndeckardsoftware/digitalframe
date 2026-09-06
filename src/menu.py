@@ -21,6 +21,7 @@ class OnScreenMenu:
         self.current = "menu"
         self.options = self.menus['menu']
         self.selected = 0
+        self.number = 0
         self.option = self.set_option()
         self.is_active = False
         self.in_action = False

@@ -9,28 +9,39 @@
         {"t": "Sveglia", "k": "KEY_F8"},
         {"g": "f'Luce Ambiente ({self.on_off(self.df.ambient_light)})'", "k": "KEY_L"},
         {"t": "Configurazione Luce", "m": "light"},
-        {"g": "f'Seleziona cartella ({self.df.items.get_subfolder()})'", "m": "folders"},
-        {"g": "f'Seleziona Bordo ({Config.get(\"items.types.image.border.file\", None)})'", "m": "borders"},
-        {"g": "f'Seleziona Passepartout ({Config.get(\"items.types.image.matte.texture\", None)})'", "m": "mattes"},
-        {"e": "f'Tempo visualizzazione immagine < {self.df.image_ttl} > sec.'", "fl": "self.devices.set_ttl(-10)", "fr": "self.devices.set_ttl(10)"},
-        {"e": "f'Tempo sospensione automatica < {self.df.hdmi_off_timeout} > min.'", "fl": "self.devices.set_sleep(-5)", "fr": "self.devices.set_sleep(5)"},
+        {"g": "f'Cartella ({self.df.items.get_subfolder()})'", "m": "folders"},
+        {"g": "f'Passepartout ({Config.get(\"items.types.image.matte.texture\", None)})'", "m": "mattes"},
+        {"g": "f'Bordo ({Config.get(\"items.types.image.border.file\", None)})'", "m": "borders"},
+        {"e": "f'Durata visione < {self.df.image_ttl} > sec.'",
+         "fl": "self.devices.set_ttl(-10)", "fr": "self.devices.set_ttl(10)", "fv": "self.devices.set_ttl(self.number, delta=False)"},
+        {"e": "f'Sospensione dopo < {self.df.hdmi_off_timeout} > min.'",
+         "fl": "self.devices.set_sleep(-5)", "fr": "self.devices.set_sleep(5)", "fv": "self.devices.set_sleep(self.number, delta=False)"},
         {"g": "f'Riproduzione casuale ({self.on_off(self.df.items.get_shuffle())})'", "k": "KEY_S"},
-        {"t": "Metadati Immagine", "m": "meta"},
+        {"t": "Metadati", "m": "meta"},
         {"t": "Orologio", "k": "KEY_C"},
         {"t": "Estensioni", "m": "plugins"},
         {"t": "Altri Strumenti", "m": "debug"}
     ],
     "menu_sel": 0,
     "light": [
-        {"e": "f'Regolazione Luce < {self.df.lux_adj} >'", "fl": "self.df.set_lux_adj(-self.devices.inc_value)", "fr": "self.df.set_lux_adj(self.devices.inc_value)"},
-        {"e": "f'Luminosità < {self.df.get_brightness()} > (con Luce ambientale disattivata)'",  "fl": "self.devices.set_lux(-1)", "fr": "self.devices.set_lux(1)"},
+        {"e": "f'Regolazione Luce < {self.df.lux_adj} >'",
+         "fl": "self.df.set_lux_adj(-self.devices.inc_value)",
+         "fr": "self.df.set_lux_adj(self.devices.inc_value)",
+         "fv": "self.df.set_lux_adj(self.number, delta=False)"},
+        {"e": "f'Luminosità < {self.df.get_brightness()} > (con Luce ambientale disattivata)'",
+         "fl": "self.devices.set_lux(-1)",
+         "fr": "self.devices.set_lux(1)",
+         "fv": "self.devices.set_lux(self.number, delta=False)"},
         {"e": "f'Angolo direzione luce < {self.df.shader.config_get('uDirection')} > (solo per shader \"light_gradient\")'",
          "fl": "self.devices.set_direction(-1)", "fr": "self.devices.set_direction(1)"},
         {"e": "f'Luminosità monitor < {ddcutil.get_vcp_value(ddcutil.BRIGHTNESS)} >'",
          "fl": "self.devices.set_monitor_brightness(-1)", "fr": "self.devices.set_monitor_brightness(1)"},
         {"e": "f'Contrasto monitor < {ddcutil.get_vcp_value(ddcutil.CONTRAST)} >'",
          "fl": "self.devices.set_monitor_contrast(-1)", "fr": "self.devices.set_monitor_contrast(1)"},
-        {"e": "f'Passo di incremento < {self.devices.inc_value} >'", "fl": "self.devices.set_increment(-1)", "fr": "self.devices.set_increment(1)"},
+        {"e": "f'Passo di incremento < {self.devices.inc_value} >'",
+         "fl": "self.devices.set_increment(-1)",
+         "fr": "self.devices.set_increment(1)",
+         "fv": "self.devices.set_increment(self.number, delta=False)"},
         {"t": "Indietro", "back": true, "m": "menu"}
     ],
     "light_sel": 0,
@@ -41,7 +52,7 @@
         {"g": "f'Nome ({self.df.items.get_show_text(\"name\")})'", "k": "KEY_THREE"},
         {"g": "f'Data ({self.df.items.get_show_text(\"date\")})'", "k": "KEY_FOUR"},
         {"g": "f'Posizione ({self.df.items.get_show_text(\"location\")})'", "k": "KEY_FIVE"},
-        {"g": "f'Cartella ({self.df.items.get_show_text(\"directory\")})'", "k": "KEY_SIX"},
+        {"g": "f'Contenitore ({self.df.items.get_show_text(\"directory\")})'", "k": "KEY_SIX"},
         {"t": "Reset metadati", "k": "KEY_ZERO"},
         {"t": "Indietro", "back": true, "m": "menu"}
     ],
@@ -49,7 +60,10 @@
     "debug": [
         {"t": "Filtro", "k": "CTRL+KEY_Q"},
         {"g": "f'Modifica Filtro ({self.df.items.get_filter()})'", "vk": true, "d": "f'{self.df.items.get_filter()}'", "f": "self.df.set_tags_filter(self.osk.typed_text)"},
-        {"e": "f'Qualita voce < {Config.get(\"voice.threshold\", 70)} >'", "fl": "self.devices.set_voice_threshold(-1)", "fr": "self.devices.set_voice_threshold(1)"},
+        {"e": "f'Qualità voce < {Config.get(\"voice.threshold\", 70)} >'",
+         "fl": "self.devices.set_voice_threshold(-5)",
+         "fr": "self.devices.set_voice_threshold(5)",
+         "fv": "self.devices.set_voice_threshold(self.number, delta=False)"},
         {"t": "Diagnostica", "k": "CTRL+KEY_D"},
         {"t": "Diagnostica Sistema", "k": "CTRL+KEY_M"},
         {"t": "Numero Fotogrammi Secondo", "k": "CTRL+KEY_F"},
@@ -83,10 +97,17 @@
 
     "action_selection_word": [
         ["aumenta", "fr"],
-        ["diminuisci", "fl"]
+        ["diminuisci", "fl"],
+        ["per ", "fv"],
+        ["per", "fv"]
     ],
 
     "pre_action_selection_word": [
+        ["usa numero meno", "fm"],
+        ["usa numero", "fn"],
+        ["usa meno", "fm"],
+        ["usa", "fn"],
+        ["seleziona", "fs"],
         ["imposta", "fs"]
     ]
 }

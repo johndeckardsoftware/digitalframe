@@ -314,28 +314,34 @@ class Devices:
             Config.set(f'items.types.image.matte.{k}', v)
         self.show3(f"texture: {self.mattes[index]}", ttl=3)
 
-    def set_ttl(self, increment):
+    def set_ttl(self, value, delta=True):
         df = self.df
-        df.image_ttl += increment  # in seconds
+        df.image_ttl = df.image_ttl + value if delta else value  # in seconds
         df.image_ttl = max(0, min(df.image_ttl, 300))
         Config.set('items.types.image.ttl', df.image_ttl)
 
-    def set_sleep(self, increment):
+    def set_sleep(self, value, delta=True):
         df = self.df
-        df.hdmi_off_timeout += increment  # in minutes
+        df.hdmi_off_timeout = df.hdmi_off_timeout + value if delta else value # in minutes
         df.hdmi_off_timeout = max(0, min(df.hdmi_off_timeout, 60))
         Config.set('window.hdmi_off_timeout', df.hdmi_off_timeout)
 
-    def set_increment(self, increment):
-        self.inc_value += increment
+    def set_increment(self, value, delta=True):
+        self.inc_value = self.inc_value + value if delta else value
         self.inc_value = max(0, min(self.inc_value, 50))
 
-    def set_lux_adj(self, sign):
-        self.df.set_lux_adj(sign*self.inc_value)
+    def set_lux_adj(self, value, delta=True):
+        if delta:
+            self.df.set_lux_adj(value*self.inc_value)
+        else:
+            self.df.set_lux_adj(value)
         self.show3(f"lux adjustement value: {self.df.lux_adj}", ttl=2)
 
-    def set_lux(self, sign):
-        lux = self.df.lux + (sign * self.inc_value)
+    def set_lux(self, value, delta=True):
+        if delta:
+            lux = self.df.lux + (value * self.inc_value)
+        else:
+            lux = value
         if lux < 0: lux = 0
         self.df.set_brightness(lux)
         self.show3(f"lux: {lux}: brightness: {self.df.get_brightness()}")
@@ -359,8 +365,9 @@ class Devices:
         time.sleep(0.5)
         self.show3(f"brightness: {ddcutil.get_vcp_value(ddcutil.CONTRAST)}")
 
-    def set_voice_threshold(self, increment):
-        vt = Config.get('voice.threshold', 70) + increment
+    def set_voice_threshold(self, value, delta=True):
+        vt = Config.get('voice.threshold', 90)
+        vt = vt + value if delta else value
         vt = max(0, min(vt, 100))
         Config.set('voice.threshold', vt)
 
