@@ -365,6 +365,22 @@ class Devices:
         time.sleep(0.5)
         self.show3(f"brightness: {ddcutil.get_vcp_value(ddcutil.CONTRAST)}")
 
+    def set_video_sound(self, value=None):
+        df = self.df
+        df.sound_enabled = value if value else not df.sound_enabled
+        Config.set('items.types.video.sound', df.sound_enabled)
+
+    def set_volume(self, value, delta=True):
+        vol = Config.get('items.types.video.volume', 5)
+        vol = vol + value if delta else value
+        vol = max(0, min(vol, 9))
+        Config.set('items.types.video.volume', vol)
+
+    def set_piper_voice(self, value=None):
+        va = self.df.voice_assistant
+        va.piper_enabled = value if value else not  va.piper_enabled
+        Config.set('voice.piper.enabled', va.piper_enabled)
+
     def set_voice_threshold(self, value, delta=True):
         vt = Config.get('voice.threshold', 90)
         vt = vt + value if delta else value

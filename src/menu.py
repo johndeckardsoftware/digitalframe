@@ -14,6 +14,7 @@ class OnScreenMenu:
         #logger.setLevel(logging.DEBUG)
         self.df = digitalframe
         self.devices = devices
+        self.va = None
         # Style
         self.set_style_size(self.df.scale)
         # Menus state
@@ -136,7 +137,7 @@ class OnScreenMenu:
         self.option = self.set_option()
 
     def on_off(self, value):
-        return "ON" if value else "OFF"
+        return "on" if value else "off"
 
     def set_option(self):
         option = self.options[self.selected]

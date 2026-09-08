@@ -1,14 +1,21 @@
-import json
+import os
 import socket
 import logging
 import threading
+import hashlib
+import subprocess
+import wave
+import json
+from queue import Empty, Queue
 from typing import Optional
 from vosk import Model, KaldiRecognizer
+from piper import PiperVoice
 
 from config import Config
 import utils.ddcutil as ddcutil
 
 logger = logging.getLogger(__name__)
+#logger.setLevel(logging.DEBUG)
 
 class VoskSpeechBackend:
     """UDP Audio Stream receiver that processes speech with Vosk local STT."""
@@ -121,3 +128,94 @@ class VoskSpeechBackend:
         if self.thread and self.thread.is_alive():
             self.thread.join()
         logger.info("Vosk Speech Backend stopped.")
+
+class PiperSpeechEngine(threading.Thread):
+
+    def __init__(self, cache_dir: str = None):
+        super().__init__(daemon=True)
+        self.queue = Queue()
+        self.running = True
+        self.voice = None
+
+        # Setup persistent cache directory for WAV files
+        self.cache_dir = cache_dir or os.path.join(Config.RESOURCES_PIPER, "cache")
+        os.makedirs(self.cache_dir, exist_ok=True)
+
+        # Dictionary cache for (text -> wav_filename)
+        self.cache = {}
+
+        # Pre-populate cache dictionary with existing WAV files in cache directory
+        self._warm_cache()
+
+    def _warm_cache(self):
+        """Discovers existing audio files on disk and populates the cache."""
+        if os.path.exists(self.cache_dir):
+            for fname in os.listdir(self.cache_dir):
+                if fname.endswith(".wav"):
+                    # Mapping cannot reconstruct text easily, but md5 lookup handles exact hits
+                    pass
+
+    def _get_cache_filename(self, text: str) -> str:
+        """Generates a deterministic filename based on the MD5 hash of the text."""
+        text_hash = hashlib.md5(text.strip().lower().encode("utf-8")).hexdigest()
+        return os.path.join(self.cache_dir, f"tts_{text_hash}.wav")
+
+    def _init_piper(self):
+        """Loads the Piper voice model lazily on the background thread."""
+        if self.voice is None:
+            model_path = os.path.join(Config.RESOURCES_PIPER, Config.get('voice.piper.model_path', 'en_US-amy-medium.onnx'))
+            logger.info(f"Loading Piper TTS model: {model_path}")
+            self.voice = PiperVoice.load(model_path)
+
+    def play_audio(self, wav_path: str):
+        """Plays the generated WAV file using system process."""
+        try:
+            subprocess.run(["aplay", "-q", wav_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception as e:
+            logger.error(f"Error playing speech WAV file '{wav_path}': {e}")
+
+    def speak(self, text: str):
+        """Puts a new speech string into the processing queue."""
+        if text and text.strip():
+            self.queue.put(text.strip())
+
+    def run(self):
+        """Main thread loop: waits for text, synthesizes if uncached, and plays."""
+        logger.info(f"Piper local TTS Engine running.")
+        while self.running:
+            try:
+                # Wait for text from queue
+                text = self.queue.get(timeout=3.0)
+            except Empty:
+                continue
+
+            try:
+                # 1. Check in-memory cache first
+                if text in self.cache and os.path.exists(self.cache[text]):
+                    wav_path = self.cache[text]
+                    logger.debug(f"TTS Cache Hit for: '{text}' -> {wav_path}")
+                else:
+                    # 2. Check disk cache via hash
+                    wav_path = self._get_cache_filename(text)
+                    if not os.path.exists(wav_path):
+                        self._init_piper()
+                        logger.debug(f"Synthesizing TTS for: '{text}' -> {wav_path}")
+                        with wave.open(wav_path, "wb") as wav_file:
+                            self.voice.synthesize_wav(text, wav_file)
+
+                    # Update internal dictionary cache
+                    self.cache[text] = wav_path
+
+                # 3. Play the audio file
+                self.play_audio(wav_path)
+
+            except Exception as e:
+                logger.error(f"Error processing TTS speech task: {e}")
+            finally:
+                self.queue.task_done()
+
+    def stop(self):
+        """Stops the worker thread safely."""
+        self.running = False
+        logger.info("Piper local TTS engine stopped.")
+

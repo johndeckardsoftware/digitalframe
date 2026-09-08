@@ -206,7 +206,7 @@ class DFItemList:
         return enabled
 
     def set_show_text(self, key, value):
-        if value == "ON":
+        if value.upper() == "ON":
             self.meta_config[key]['enabled'] = True
             self.meta_show += 1
         else:
@@ -214,7 +214,7 @@ class DFItemList:
             self.meta_show -= 1
 
     def get_show_text(self, key):
-        return "ON" if self.text_is_on(key) else "OFF"
+        return "on" if self.text_is_on(key) else "off"
 
     def not_show_text(self, key):
         self.set_show_text(key, ("OFF" if self.text_is_on(key) else "ON"))

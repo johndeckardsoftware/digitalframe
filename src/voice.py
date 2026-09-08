@@ -1,21 +1,25 @@
+import os
+import re
 import asyncio
-import os, threading, logging
-import subprocess, re
-from config import Config
+import logging
+import threading
+
+from rapidfuzz import fuzz, process
+from num2words2 import num2words
+from text_to_num import text2num
+
 from assistants.fauxmo.fauxmo import main as fauxmo_main
 from assistants.alexa.speech2text import AlexaSpeechBackend
-from assistants.esp32s3.myalexa import VoskSpeechBackend
+from assistants.esp32s3.myalexa import VoskSpeechBackend, PiperSpeechEngine
+from config import Config
 import utils.ddcutil as ddcutil
-from rapidfuzz import process, fuzz
-from text_to_num import text2num
-from num2words2 import num2words
 
 logger = logging.getLogger(__name__)
 
-class VoiceAssistant():
+class VoiceAssistant:
     def __init__(self, digitalframe, config_path):
         logger.setLevel(Config.get("window.log_level", logging.INFO))
-        #logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.DEBUG)
         self.df = digitalframe
         self.config_path = config_path
         self.verbosity = Config.get("window.log_level", logging.INFO)
@@ -23,26 +27,33 @@ class VoiceAssistant():
 
         # menu class ref
         self.menu = digitalframe.devices.menu
+        self.menu.va = digitalframe.voice_assistant
 
         # Cache structure for rapid string matching
         self._cached_menu_texts = []
         self._cached_menu_options = []
 
-        # Fauxmo threading handles
+        # Fauxmo Thread handles
+        self.fauxmo_enabled = Config.get("voice.fauxmo.enabled", False)
         self.fauxmo_loop = None
         self.fauxmo_thread = None
 
-        # Alexa Speech to text Backend Server instance
+        # Alexa Speech to text Backend Thread
+        self.alexa_enabled = Config.get("voice.alexa.enabled", False)
         self.alexa_stt_backend = None
 
-        # ESP32S3 MyAlexa Speech to text Backend Server instance
+        # MyAlexa ESP32S3 Speech to Text Backend Thread
+        self.esp32s3_enabled = Config.get("voice.esp32s3.enabled", False)
         self.vosk_server = None
 
-        # Feature flags
-        self.fauxmo_enabled = Config.get('voice.fauxmo.enabled', False)
-        self.alexa_enabled = Config.get('voice.alexa.enabled', False)
-        self.esp32s3_enabled = Config.get('voice.esp32s3.enabled', False)
-        self.piper_enabled = Config.get('voice.piper.enabled', False)
+        # MyAlexa Piper TTS Engine Thread
+        self.piper_enabled = Config.get("voice.piper.enabled", False)
+        self.tts_engine = None
+
+    def speak(self, text: str):
+        """Forwards speech requests to the Piper worker thread queue."""
+        if self.tts_engine and self.piper_enabled:
+            self.tts_engine.speak(text)
 
     def eval_menu_text(self, option):
         item_text = ""
@@ -70,12 +81,15 @@ class VoiceAssistant():
         options_ref = []
 
         for menu_name, options in self.menu.menus.items():
-            if not isinstance(options, list) or menu_name == "pre_action_selection_word" or menu_name == "action_selection_word":
+            if (
+                not isinstance(options, list)
+                or menu_name == "pre_action_selection_word"
+                or menu_name == "action_selection_word"
+            ):
                 continue
 
             for option in options:
                 item_text = self.eval_menu_text(option)
-
                 clean_text = item_text.lower().strip()
                 if clean_text:
                     clean_text = re.sub(r"\s*\(.*?\)", "", clean_text)
@@ -201,30 +215,13 @@ class VoiceAssistant():
                     logger.error(speech)
                     response = "err"
 
-            if self.piper_enabled:
-                if response == "ok":
-                    speech = self.eval_menu_text(option)
-                    logger.debug(f"{speech=}")
-                    if speech:
-                        self.speak(speech)
+            if self.piper_enabled and response == "ok":
+                speech = self.eval_menu_text(option)
+                logger.debug(f"{speech=}")
+                if speech:
+                    self.speak(speech)
 
         return response
-
-    def speak(self, text):
-        # nice but too slow
-        path = Config.get('voice.piper.path', 'piper')
-        model_path = os.path.join(Config.RESOURCES_PIPER, Config.get('voice.piper.model_path', 'it_IT-paola-medium.onnx'))
-        logger.debug(f"{path=} {model_path=}")
-        # Pipe synthesized audio directly to aplay for zero-latency playback
-        piper_cmd = [path, "--model", model_path, "--output-raw"]
-        aplay_cmd = ["aplay", "-r", "22050", "-f", "S16_LE", "-t", "raw"]
-
-        piper_proc = subprocess.Popen(piper_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        aplay_proc = subprocess.Popen(aplay_cmd, stdin=piper_proc.stdout)
-
-        piper_proc.stdin.write(text.encode('utf-8'))
-        piper_proc.stdin.close()
-        aplay_proc.wait()
 
     def run(self):
         # 1. Start Fauxmo if enabled
@@ -232,8 +229,13 @@ class VoiceAssistant():
             self.fauxmo_loop = asyncio.new_event_loop()
             self.fauxmo_thread = threading.Thread(
                 target=fauxmo_main,
-                args=(self.df, self.fauxmo_loop, self.config_path, self.verbosity),
-                daemon=True
+                args=(
+                    self.df,
+                    self.fauxmo_loop,
+                    self.config_path,
+                    self.verbosity,
+                ),
+                daemon=True,
             )
             self.fauxmo_thread.start()
             logger.info("Fauxmo server thread started.")
@@ -281,10 +283,15 @@ class VoiceAssistant():
                 on_speech_callback=self.on_speech_received
             )
             self.vosk_server.start(in_thread=True)
-            logger.info("VOSK local STT engine running.")
+            logger.info("Vosk local STT engine running.")
+
+        # 4. Start Piper TTS engine thread
+        if self.piper_enabled:
+            self.tts_engine = PiperSpeechEngine()
+            self.tts_engine.start()
 
     def stop(self):
-        # 1. Stop Alexa Backend server
+		# 1. Stop Alexa Backend server
         if self.alexa_stt_backend:
             self.alexa_stt_backend.stop()
 
@@ -296,6 +303,10 @@ class VoiceAssistant():
             self.fauxmo_loop.close()
             logger.info("Fauxmo event loop closed.")
 
-        # 2. Stop MyAlexa server
+        # 3. Stop MyAlexa server
         if self.vosk_server:
             self.vosk_server.stop()
+
+        # 4. Stop Piper speech engine
+        if self.tts_engine:
+            self.tts_engine.stop()

@@ -17,6 +17,7 @@ from dftext import DrawTextTTLList, dftext, update_dftext_vars
 from devices import Devices
 from mqtt import MQTT
 from plugin_manager import PluginManager
+from voice import VoiceAssistant
 
 class DigitalFrame:
     def __init__(self, fullscreen=None):
@@ -90,12 +91,12 @@ class DigitalFrame:
         self.overlay = None # texture handle
         self.overlay_file = None
         self.overlay_tint = Config.get('window.overlay_color', (255, 255, 255, 192))
+        # voice assistant instance
+        self.voice_assistant = None
         # peripherals
         self.devices = Devices(self)
         self.mqtt = None
         self._publish_state = None
-        # menu voice assistant
-        self.voice_assistant = None
         # plugins
         self.plugins = None
         # sound
@@ -192,12 +193,10 @@ class DigitalFrame:
 
         self.mqtt_init()
 
-        if (Config.get('voice.esp32s3.enabled', False) or
-            Config.get('voice.alexa.enabled', False) or
-            Config.get('voice.fauxmo.enabled', False)):
-            from voice import VoiceAssistant
-            self.voice_assistant = VoiceAssistant(self.this, os.path.join(Config.RESOURCES_CONFIG, "fauxmo.json"))
-            self.voice_assistant.run()
+        # voice assistant
+        self.voice_assistant = VoiceAssistant(self, os.path.join(Config.RESOURCES_CONFIG, "fauxmo.json"))
+        self.voice_assistant.run()
+        self.devices.menu.va = self.voice_assistant
 
         set_target_fps(clock.fps)
         while not window_should_close() and self.keep_looping:
@@ -359,7 +358,7 @@ class DigitalFrame:
                 self.publish_state()
 
     def get_debug_msg(self):
-        msg = f"screen={self.width}x{self.height}, ratio={self.ratio}, folder={self.items.folder}, \
+        msg = f"screen={self.width}x{self.height}, ratio={self.ratio}, fps={clock.fps};{clock.rft:.3f}, folder={self.items.folder}, \
 sleep={self.hdmi_off_timeout} min., ttl={self.image_ttl}, ambient={self.ambient_light}, \
 brightness={self.brightness}, lux={self.lux}, adj={self.lux_adj}, shader={self.shader.name}, motion_enabled={self.motion_enabled}, \
 motion={self.motion}, {self.debug}"

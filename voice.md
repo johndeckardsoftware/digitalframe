@@ -169,8 +169,9 @@ All three services can be selectively enabled or configured inside your main `co
 ```json
 "voice": {
     "threshold": 80,
+    "lang": "en",
     "fauxmo": {
-        "enabled": true
+        "enabled": false
     },
     "alexa": {
         "enabled": false,
@@ -179,14 +180,41 @@ All three services can be selectively enabled or configured inside your main `co
         "verify_signature": false
     },
     "esp32s3": {
-        "enabled": true,
+        "enabled": false,
         "host": "0.0.0.0",
         "port": 5005,
         "esp32_ip": "192.168.1.2",
         "esp32_port": 5005,
-        "model_path": "vosk-model-small-it-0.22",
+        "model_path": "vosk-model-small-en-us-0.15",
         "vocabulary": true
-    }
+    },
+    "piper": {
+        "enabled": false,
+        "model_path": "en_US-amy-medium.onnx"
+    },
 }
+
+```
+
+### Installing Piper-tts (echo voice command from digitalframe)
+
+https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/API_PYTHON.md
+
+
+**1. System Installation**
+Install `piper-tts` via `pip` or download the standalone ARM64 binary:
+
+```bash
+pip install piper-tts
+
+```
+
+**2. Download a Voice Model**
+
+form https://huggingface.co/rhasspy/piper-voices/tree/main fetch an ONNX model file and its corresponding `.json` config file (e.g., English medium voice):
+
+```bash
+wget https://huggingface.co/rhasspy/piper-voices/blob/main/en/en_US/amy/medium/en_US-amy-medium.onnx
+wget https://huggingface.co/rhasspy/piper-voices/blob/main/en/en_US/amy/medium/en_US-amy-medium.onnx.json
 
 ```

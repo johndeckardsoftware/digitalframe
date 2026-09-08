@@ -96,7 +96,7 @@ class DFItemVideo:
         return Rectangle(off_x, off_y, new_w, new_h)
 
     def video_process(self):
-        if self.sound_enabled:
+        if Config.get('items.types.video.sound', False):
             err = None
             if self.has_sound == None:
                 self.has_sound, err, self.filemp3 = extract_sound(self.file)
@@ -169,7 +169,10 @@ class DFItemVideo:
 
         if self.sound_start and self.sound:
             play_music_stream(self.sound)
-            set_music_volume(self.sound, 0.5) # Set volume to 50%
+            vol = Config.get('items.types.video.volume', 5) # from 0 to 9
+            vol = max(0, min(vol, 9))
+            vol = float(f"0.{vol}")
+            set_music_volume(self.sound, vol) # Set volume to 50%
             self.sound_start = False
 
     def video_draw(self):
