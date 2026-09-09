@@ -3,6 +3,8 @@ import random, math
 from config import Config
 from pyray import *
 import colorsys
+import cv2
+import numpy as np
 
 class Histogram:
     def __init__(self, name, image):
@@ -16,11 +18,13 @@ class Histogram:
         self.histogram_b_max = 1
         self.scale = 10             # work on a scaled image
         self.matte_enabled = Config.get('items.types.image.matte.enabled', True)
+        self.dominant_color = Config.get('items.types.image.matte.dominant_color', True)
+        self.dominant_filter = Config.get('items.types.image.matte.dominant_filter', [15, 240, 20])
         self.k_means = Config.get('items.types.image.matte.kmeans', False)
         self.k_num = Config.get('items.types.image.matte.knum', 2)
         self.k_iter = Config.get('items.types.image.matte.kiter', 5)
-        self.k_rnd = Config.get('items.types.image.matte.krnd', True)
-        self.k_shade = Config.get('items.types.image.matte.shade', True)
+        self.k_rnd = Config.get('items.types.image.matte.krnd', False)
+        self.k_shade = Config.get('items.types.image.matte.shade', False)
         self.k_shade_factor = Config.get('items.types.image.matte.sfactor', -0.3)
         self.k_complementary = Config.get('items.types.image.matte.complementary', False)
         self.k_col = [Color(0,0,0,255), Color(255,255,255,255), Color(128,128,128,255)]
@@ -35,7 +39,11 @@ class Histogram:
             self.create_histogram(image2)
 
         if self.matte_enabled:
-            if self.k_means:
+            if self.dominant_color:
+                result = self.detect_dominant_tint(image2, *self.dominant_filter)
+                c = result['dominant_rgb']
+                self.k_col = [Color(int(c[0]), int(c[1]), int(c[2]), 255)]
+            elif self.k_means:
                 self.k_col = self.get_k_means(image2, k=self.k_num, iterations=self.k_iter)
             else:
                 self.k_col = self.get_df_means(image2)
@@ -73,6 +81,101 @@ class Histogram:
                 b = i
 
         return (r, g, b, 255)
+
+    def detect_dominant_tint(
+        self,
+        image: Image,
+        min_lightness: int = 15,
+        max_lightness: int = 240,
+        min_saturation: int = 20,
+    ):
+        """Detects dominant tint from a Raylib Image struct.
+
+        Args:
+            image: A loaded Raylib Image object (rl.load_image(...)).
+            min_lightness: Minimum L threshold (0-255) to exclude deep shadows.
+            max_lightness: Maximum L threshold (0-255) to exclude highlights.
+            min_saturation: Minimum S threshold (0-255 in HSV) to exclude grays.
+        """
+        # 1. Read image (BGR format in OpenCV)
+        #bgr = cv2.imread(image)
+        #if bgr is None:
+        #    raise FileNotFoundError(f"Could not load image at {image}")
+
+        # 1. Determine channel count based on Raylib PixelFormat
+        # Raylib images loaded via rl.load_image typically default to UNCOMPRESSED_R8G8B8A8 (4 channels)
+        channels = 4
+        if image.format == PixelFormat.PIXELFORMAT_UNCOMPRESSED_R8G8B8:
+            channels = 3
+
+        # 2. Convert Raylib image.data pointer into a NumPy array
+        # ffi.buffer wraps the C memory pointer without copying
+        data_size = image.width * image.height * channels
+        buffer = ffi.buffer(image.data, data_size)
+
+        # Reshape byte buffer into (Height, Width, Channels) uint8 array
+        img_array = np.frombuffer(buffer, dtype=np.uint8).reshape(
+            (image.height, image.width, channels)
+        )
+
+        # 3. Convert RGBA/RGB to OpenCV's native BGR format
+        if channels == 4:
+            bgr = cv2.cvtColor(img_array, cv2.COLOR_RGBA2BGR)
+        else:
+            bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+
+        # 4. Convert to HSV for saturation masking
+        hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+        saturation = hsv[:, :, 1]
+
+        # 5. Convert to OpenCV LAB space
+        lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2LAB)
+        l_chan, a_chan, b_chan = cv2.split(lab)
+
+        # 6. Filter out grays, shadows, and extreme highlights
+        valid_pixels = (
+            (l_chan >= min_lightness)
+            & (l_chan <= max_lightness)
+            & (saturation >= min_saturation)
+        )
+
+        if not np.any(valid_pixels):
+            valid_pixels = np.ones(l_chan.shape, dtype=bool)
+
+        # 7. Extract median a* and b* shifts (subtract 128 to center 0)
+        median_a = float(np.median(a_chan[valid_pixels])) - 128.0
+        median_b = float(np.median(b_chan[valid_pixels])) - 128.0
+        median_l = float(np.median(l_chan[valid_pixels]))
+
+        # Extract dominant RGB tuple
+        valid_bgr = bgr[valid_pixels]
+        median_bgr = np.median(valid_bgr, axis=0).astype(int)
+        median_rgb = (int(median_bgr[2]), int(median_bgr[1]), int(median_bgr[0]))
+
+        return {
+            "lab_shift": (round(median_a, 2), round(median_b, 2)),
+            "median_lightness": round(median_l, 2),
+            "dominant_rgb": median_rgb,
+            "tint_description": self.classify_tint(median_a, median_b),
+        }
+
+    def classify_tint(self, a: float, b: float, threshold: float = 3.0) -> str:
+        """Classifies the chromatic cast based on CIE a* (Green/Red) and b* (Blue/Yellow)."""
+        if abs(a) < threshold and abs(b) < threshold:
+            return "Neutral / Balanced"
+
+        labels = []
+        if b > threshold:
+            labels.append("Warm Yellow")
+        elif b < -threshold:
+            labels.append("Cool Blue")
+
+        if a > threshold:
+            labels.append("Magenta/Red")
+        elif a < -threshold:
+            labels.append("Green")
+
+        return " - ".join(labels)
 
     def get_df_means(self, image):
 
@@ -166,7 +269,7 @@ class Histogram:
             c = self.get_complementary_color(self.k_col[i].r, self.k_col[i].g, self.k_col[i].b)
         else:
             c = self.k_col[i]
-        
+
         if self.k_shade:
             c = self.get_shade_color(c.r, c.g, c.b, self.k_shade_factor)
 
