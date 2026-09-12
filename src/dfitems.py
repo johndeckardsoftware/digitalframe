@@ -1,4 +1,5 @@
 import os, random, time
+import ast
 from config import Config, ItemType
 
 from dfimage import DFItemImage
@@ -181,7 +182,16 @@ class DFItemList:
         return self.filter
 
     def set_filter(self, filter):
-        self.filter = filter
+        try:
+            if filter == "":
+                self.filter = filter
+            else:
+                ast.parse(filter, mode='eval')
+                self.filter = filter
+            return True
+        except SyntaxError as e:
+            self.df.logger.warning(f"filter: {filter}::{e}")
+            return False
 
     def get_shuffle(self):
         return self.shuffle

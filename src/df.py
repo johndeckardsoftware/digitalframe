@@ -185,7 +185,16 @@ class DigitalFrame:
 
         self.load_icon()
 
-        self.font = load_font(os.path.join(Config.RESOURCES_FONT, Config.get('window.font', "LiberationMono-Regular.ttf")))
+        #self.font = load_font(os.path.join(Config.RESOURCES_FONT, Config.get('window.font', "LiberationMono-Regular.ttf")))
+        # manage all ansi charaters
+        codepoints_list = list(range(32, 256))
+        codepoints = ffi.new("int[]", codepoints_list)
+        self.font = load_font_ex(
+            os.path.join(Config.RESOURCES_FONT, Config.get('window.font', "LiberationMono-Regular.ttf")),
+            32,
+            ffi.cast("void *", codepoints),
+            len(codepoints_list)
+        )
 
         self.shader = create_shader(self)
 
@@ -321,10 +330,10 @@ class DigitalFrame:
 
     def set_tags_filter(self, value):
         if value == "*": value = ""
-        self.tags_filter = value
-        self.items.set_filter(value)
-        Config.set('items.filter', value)
-        self.logger.info(f"filter: {value}")
+        if self.items.set_filter(value):
+            self.tags_filter = value
+            Config.set('items.filter', value)
+            self.logger.info(f"filter: {value}")
 
     def display_on(self):
         return self.display
