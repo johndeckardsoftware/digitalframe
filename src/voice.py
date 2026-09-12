@@ -6,8 +6,7 @@ import threading
 
 from rapidfuzz import fuzz, process
 from num2words2 import num2words
-from text_to_num import text2num
-
+from text_to_num import text2num 
 from assistants.fauxmo.fauxmo import main as fauxmo_main
 from assistants.alexa.speech2text import AlexaSpeechBackend
 from assistants.esp32s3.myalexa import VoskSpeechBackend, PiperSpeechEngine
@@ -62,12 +61,14 @@ class VoiceAssistant:
         elif "g" in option:
             try:
                 item_text = eval(option["g"], {"self": self.menu, "Config": Config, "ddcutil": ddcutil})
-            except Exception:
+            except Exception as e:
+                logger.error(e)
                 item_text = option["g"]
         elif "e" in option:
             try:
                 item_text = eval(option["e"], {"self": self.menu, "Config": Config, "ddcutil": ddcutil})
-            except Exception:
+            except Exception as e:
+                logger.error(e)
                 item_text = option["e"]
 
         return item_text
@@ -83,8 +84,7 @@ class VoiceAssistant:
         for menu_name, options in self.menu.menus.items():
             if (
                 not isinstance(options, list)
-                or menu_name == "pre_action_selection_word"
-                or menu_name == "action_selection_word"
+                or menu_name == "action_modifier_word"
             ):
                 continue
 
@@ -118,20 +118,36 @@ class VoiceAssistant:
                     words.append(clean_text)
                     words.extend(clean_text.split())
 
-            # Also include action words from 'pre_action_selection_word' and 'action_selection_word' mapping if present
-            asw_list = self.menu.menus.get("pre_action_selection_word", [])
-            for action in asw_list:
-                if action and isinstance(action, list):
-                    words.append(action[0].lower().strip())
-
-            asw_list = self.menu.menus.get("action_selection_word", [])
-            for action in asw_list:
+            # Also include action words from 'action_modifier_word' mapping if present
+            amw_list = self.menu.menus.get("action_modifier_word", [])
+            for action in amw_list:
                 if action and isinstance(action, list):
                     words.append(action[0].lower().strip())
 
             # Also include numbers from 0 to 255
             for n in range(0, 255):
                 words.append(num2words(n, lang=self.lang))
+
+            # English letter pronunciations
+            en_letter_names = [
+                "a", "bee", "cee", "dee", "e", "ef", "gee", "aitch", "eye", "jay",
+                "kay", "el", "em", "en", "o", "pee", "cue", "ar", "ess", "tee",
+                "you", "vee", "double-you", "ex", "wy", "zee", "zed"
+            ]
+
+            # Italian letter pronunciations
+            it_letter_names = [
+                "a", "bi", "ci", "di", "e", "effe", "gi", "acca", "i", "elle",
+                "emme", "enne", "o", "pi", "cu", "erre", "esse", "ti", "u", "vi",
+                "vu", "zeta", "i lunga", "i greca", "kappa", "doppia vu", "ics", "way"
+            ]
+
+            # Pick based on self.lang configuration
+            letter_names = it_letter_names if self.lang == "it" else en_letter_names
+
+            for name in letter_names:
+                words.append(name)
+                words.extend(name.split())  # Handles multi-word names like "doppia vu" or "i greca"
 
         except Exception as e:
             logger.warning(f"Could not extract menu words: {e}")
@@ -142,43 +158,43 @@ class VoiceAssistant:
         """Callback triggered when a voice command is captured by AlexaSpeechBackend or VoskSpeechBackend."""
         logger.debug(f"Executing Speech command: '{text}'")
 
-        command = text.lower().strip()
-
         # Build cache on first run if not already present
         if not self._cached_menu_texts:
             self.refresh_menu_cache()
 
-        # Manage pre action selection word  (fs)
-        pre_action = ""
-        pre_word_action_list = self.menu.menus.get("pre_action_selection_word", [])
-        for word, _pre_action_ in pre_word_action_list:
-            if command.startswith(word):
-                command = command.replace(word, "", 1).strip()
-                pre_action = _pre_action_
-                break
-        logger.debug(f"{pre_action=} {command=}")
+        command = text.lower().strip()
 
-        # Manage action selection word  (f, fl, fr)
+        # Check voice action modifier words
+        voice_action_list = self.menu.menus.get("voice_action", [])
+        for voice_action in voice_action_list:
+            words = voice_action['t']
+            if command.startswith(words):
+                if voice_action['s']:
+                    command = command.replace(words, "", 1).strip()
+                ret = eval(voice_action['f'], {"self": self.menu, "Config": Config, "ddcutil": ddcutil, "command": command})
+                logger.debug(f"{voice_action=} {command=}")
+                if voice_action['r']:
+                    return "ok"
+                break
+
+        # Check action modifier word  (f, fl, fr, fv)
         action = "f"
-        word_action_list = self.menu.menus.get("action_selection_word", [])
+        word_action_list = self.menu.menus.get("action_modifier_word", [])
         for word, _action_ in word_action_list:
             if command.startswith(word):
                 command = command.replace(word, "", 1).strip()
                 action = _action_
                 break
-        logger.debug(f"{action=} {command=}")
+        logger.debug(f"{command=} {action=} {self.menu.in_osk=}")
 
         response = "ko"
         speech = ""
 
-        if pre_action == "fn" or pre_action == "fm":  # set self.number. use "for" pre control word to use that with action 'fv'
-            try:
-                self.menu.number = text2num(command, lang=self.lang)
-                if pre_action == "fm": self.menu.number = self.menu.number * -1
-                logger.debug(f"{pre_action=} {self.menu.number=}")
-                response = "ok"
-            except Exception as e:
-                logger.error(f"{e}")
+        if self.menu.in_osk: # Check if the OnScreenKeyboard is actively receiving input
+            cleaned_text = text.strip()
+            # Pass the captured speech string directly to OSK buffer
+            self.menu.osk.set_typed_char_from_voice(cleaned_text)
+            return "ok"
 
         # Execute single RapidFuzz search across all pre-calculated commands at once
         match = process.extractOne(command, self._cached_menu_texts, scorer=fuzz.WRatio)
@@ -187,7 +203,11 @@ class VoiceAssistant:
             option = self._cached_menu_options[index]
             logger.info(f"Matched voice command '{matched_text}' ({score}) with menu item: {option}")
 
-            if 'k' in option:       # Execute key press
+            if 'vk' in option:
+                self.menu.osk_show(option)
+                response = "ok"
+
+            elif 'k' in option:       # Execute key press
                 self.menu.in_action = True
                 self.df.devices.send_keys(option['k'])
                 self.menu.in_action = False
@@ -201,10 +221,7 @@ class VoiceAssistant:
                 try:
                     self.menu.in_action = True
 
-                    if pre_action == "fs":  # simulate item manual selection
-                        ret = self.menu.select(command)
-
-                    ret = eval(option[action], {"self": self.menu, "Config": Config, "ddcutil": ddcutil})
+                    ret = eval(option[action], {"self": self.menu, "Config": Config, "ddcutil": ddcutil, "command": command})
                     logger.debug(f"eval ret: {ret}")
                     response = "done" if ret and ret == "stop" else "ok"
 
@@ -310,3 +327,7 @@ class VoiceAssistant:
         # 4. Stop Piper speech engine
         if self.tts_engine:
             self.tts_engine.stop()
+            self.tts_engine.join(timeout=10.0)
+            logger.info("Piper local TTS engine stopped.")
+
+
