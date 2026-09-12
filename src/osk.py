@@ -9,6 +9,7 @@ class OnScreenKeyboard:
         logger.setLevel(Config.get("window.log_level", logging.INFO))
         #logger.setLevel(logging.DEBUG)
         self.devices = devices
+        self.df = devices.df
         self.pos_x = x
         self.pos_y = y
         # keyboard geometry
@@ -27,13 +28,37 @@ class OnScreenKeyboard:
     def load_layout(self, layout):
         if not layout:
             layout = Config.get('window.menu.osk_layout', "osk_en_layout.json")
-        with open(os.path.join(Config.RESOURCES_MENU, layout), "r") as f:
+        with open(os.path.join(Config.RESOURCES_MENU, layout), "r", encoding="UTF-8") as f:
             return json.load(f)
+
+    # Example mapping inside osk.py
+    PHONETIC_TO_CHAR = {
+        # Italian
+        "bi": "b", "ci": "c", "di": "d", "effe": "f", "gi": "g",
+        "acca": "h", "elle": "l", "emme": "m", "enne": "n", "pi": "p",
+        "cu": "q", "erre": "r", "esse": "s", "ti": "t", "vi": "v",
+        "vu": "v", "zeta": "z", "kappa": "k", "ics": "x", "way": "y",
+        "doppia vu": "w", "i greca": "j", "i lunga": "j",
+        # English
+        "bee": "b", "cee": "c", "dee": "d", "ef": "f", "gee": "g",
+        "aitch": "h", "jay": "j", "kay": "k", "el": "l", "em": "m",
+        "en": "n", "pee": "p", "cue": "q", "ar": "r", "ess": "s",
+        "tee": "t", "vee": "v", "ex": "x", "wy": "y", "zee": "z", "zed": "z"
+    }
+
+    def set_typed_char_from_voice(self, text: str):
+        # Convert recognized phonetic word into its corresponding single character
+        try:
+            char = OnScreenKeyboard.PHONETIC_TO_CHAR.get(text.lower().strip(), text)
+            self._insert_char(char)
+        except Exception as e:
+            logger.error(e)
 
     def set_style_size(self, scale):
         self.key_size = int(self.info['key_size'] * scale)
         self.spacing = int(self.info['spacing'] * scale)
         self.font_size = int(self.info['font_size'] * scale)
+        self.font_spacing = 1
         self.get_kb_pos()
 
     def get_kb_pos(self):
@@ -98,7 +123,7 @@ class OnScreenKeyboard:
         else:
             #char = key.upper() if self.is_shift else key.lower()
             self._insert_char(key)
-        return True    
+        return True
 
     def _insert_char(self, char):
         # Insert at cursor position and advance cursor
@@ -109,13 +134,13 @@ class OnScreenKeyboard:
         # Calculate cursor position for visual feedback
         # We slice the text up to the cursor to find the offset
         text_before_cursor = self.typed_text[:self.cursor]
-        text_width = measure_text(text_before_cursor, self.font_size)
+        text_width = int(measure_text_ex(self.df.font, text_before_cursor, self.font_size, self.font_spacing).x)
 
         # Draw the text
-        draw_text(f"Typed: {self.typed_text}", self.pos_x, self.pos_y - self.key_size, self.font_size, WHITE)
+        draw_text_ex(self.df.font, f"Typed: {self.typed_text}", (self.pos_x, self.pos_y - self.key_size), self.font_size, self.font_spacing, WHITE)
 
         # Draw the blinking cursor bar (simple version: always on)
-        cursor_x = self.pos_x + measure_text("Typed: ", self.font_size) + text_width
+        cursor_x = int(self.pos_x + measure_text_ex(self.df.font, "Typed: ", self.font_size, self.font_spacing).x + text_width)
         if int(get_time() * 2) % 2 == 0: # Blinks twice per second
             draw_rectangle(cursor_x, self.pos_y - self.key_size, 2, self.font_size, GOLD)
 
@@ -147,4 +172,4 @@ class OnScreenKeyboard:
                     draw_rectangle_lines(x_draw, y_draw, width, self.key_size, ORANGE)
 
                 # Draw Text
-                draw_text(key, x_draw + self.spacing*2, y_draw + self.spacing*2, self.font_size, text_color)
+                draw_text_ex(self.df.font, key, (x_draw + self.spacing*2, y_draw + self.spacing*2), self.font_size, self.font_spacing, text_color)

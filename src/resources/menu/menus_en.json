@@ -1,6 +1,6 @@
 {
     "menu": [
-        {"t": "Keyboard Help", "k": "KEY_F1"},
+        {"t": "Help", "k": "KEY_F1"},
         {"g": "f'Remote Help ({self.on_off(self.df.show_remote_help)})'", "k": "KEY_F2"},
         {"g": "f'Pause ({self.on_off(self.df.paused)})'", "k": "KEY_F3"},
         {"t": "Previous", "k": "KEY_F4"},
@@ -60,7 +60,7 @@
     "debug": [
         {"t": "Filter", "k": "CTRL+KEY_Q"},
         {"g": "f'Edit Filter ({self.df.items.get_filter()})'", "vk": true, "d": "f'{self.df.items.get_filter()}'", "f": "self.df.set_tags_filter(self.osk.typed_text)"},
-        {"e": "f'Voice quality < {Config.get(\"voice.threshold\", 70)} >'",
+        {"e": "f'Voice quality < {Config.get(\"voice.threshold\", 90)} >'",
          "fl": "self.devices.set_voice_threshold(-5)",
          "fr": "self.devices.set_voice_threshold(5)",
          "fv": "self.devices.set_voice_threshold(self.number, delta=False)"},
@@ -69,13 +69,13 @@
          "fl": "self.devices.set_volume(-1)",
          "fr": "self.devices.set_volume(1)",
          "fv": "self.devices.set_volume(self.number, delta=False)"},
-        {"g": "f'Echo voice ({self.on_off(self.va.piper_enabled)})'", "f": "self.devices.set_piper_voice()"}, 
-        {"t": "Diagnostics", "k": "CTRL+KEY_D"},
+        {"g": "f'Echo voice ({self.on_off(self.get_piper_enabled())})'", "f": "self.set_piper_voice()"}, 
+        {"g": "f'Diagnostica ({self.on_off(self.df.show_debug)})'", "k": "CTRL+KEY_D"},
         {"t": "System Diagnostics", "k": "CTRL+KEY_M"},
-        {"t": "Reserved", "k": "KEY_F6"},
+        {"g": "f'Reserved ({self.on_off(self.df.items.private)})'", "k": "KEY_F6"},
         {"t": "Save configuration", "f": "Config.save()"},
         {"t": "Close", "f": "self.df.close(False)"},
-        {"t": "Close and Save configuration", "k": "CTRL+KEY_E"},
+        {"t": "Close and Save configuration", "f": "self.df.close()"},
         {"t": "Reload", "f": "self.df.reload(False)"},
         {"t": "Reload and Save configuration", "f": "self.df.reload()"},
         {"t": "Reboot", "f": "self.df.reboot()"},
@@ -88,7 +88,7 @@
     ],
     "plugins_sel": 0,
 
-    "extra": [
+    "extra_menu": [
         {"t": "pause", "f": "self.df.set_paused(True)"},
         {"t": "continue", "f": "self.df.set_paused(False)"},
         {"t": "forward", "k": "KEY_F5"},
@@ -99,18 +99,27 @@
         {"t": "stop", "f": "'stop'"}
     ],
 
-    "action_selection_word": [
+    "voice_action": [
+        {"t": "use negative number", "s": true, "r": true, "f": "self.set_number(-1, command)"},
+        {"t": "use number", "s": true, "r": true, "f": "self.set_number(1, command)"},
+        {"t": "use minus", "s": true, "r": true, "f": "self.set_number(-1, command)"},
+        {"t": "use", "s": true, "r": true, "f": "self.set_number(1, command)"},
+        {"t": "select", "s": true, "r": false, "f": "self.select(command)"},
+        {"t": "set", "s": true, "r": false, "f": "self.select(command)"},
+        {"t": "open keyboard", "s": false, "r": true, "f": "self.osk_show()"},
+        {"t": "close keyboard", "s": false, "r": true, "f": "self.osk_hide()"},
+        {"t": "enter", "s": false, "r": true, "f": "self.osk_hide()"},
+        {"t": "clear keyboard", "s": false, "r": true, "f": "self.osk_clear()"},
+        {"t": "backspace", "s": false, "r": true, "f": "self.osk_backspace()"},
+        {"t": "left", "s": false, "r": true, "f": "self.osk_left()"},
+        {"t": "right", "s": false, "r": true, "f": "self.osk_right()"},
+        {"t": "blank", "s": false, "r": true, "f": "self.osk_blank()"},
+        {"t": "shift", "s": false, "r": true, "f": "self.osk_shift()"}
+    ],
+
+    "action_modifier_word": [
         ["increase", "fr"],
         ["decrease", "fl"],
         ["by", "fv"]
-    ],
-
-    "pre_action_selection_word": [
-        ["use negative number", "fm"],
-        ["use number", "fn"],
-        ["use minus", "fm"],
-        ["use", "fn"],
-        ["select", "fs"],
-        ["set", "fs"]
     ]
 }

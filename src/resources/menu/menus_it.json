@@ -1,6 +1,6 @@
 {
     "menu": [
-        {"t": "Aiuto Tastiera", "k": "KEY_F1"},
+        {"t": "Aiuto", "k": "KEY_F1"},
         {"g": "f'Aiuto Telecomando ({self.on_off(self.df.show_remote_help)})'", "k": "KEY_F2"},
         {"g": "f'Pausa ({self.on_off(self.df.paused)})'", "k": "KEY_F3"},
         {"t": "Precedente", "k": "KEY_F4"},
@@ -69,13 +69,13 @@
          "fl": "self.devices.set_volume(-1)",
          "fr": "self.devices.set_volume(1)",
          "fv": "self.devices.set_volume(self.number, delta=False)"},
-        {"g": "f'Voce di conferma ({self.on_off(self.va.piper_enabled)})'", "f": "self.devices.set_piper_voice()"}, 
+        {"g": "f'Voce di conferma ({self.on_off(self.get_piper_enabled())})'", "f": "self.set_piper_voice()"}, 
         {"g": "f'Diagnostica ({self.on_off(self.df.show_debug)})'", "k": "CTRL+KEY_D"},
         {"t": "Diagnostica Sistema", "k": "CTRL+KEY_M"},
         {"g": "f'Riservato ({self.on_off(self.df.items.private)})'", "k": "KEY_F6"},
         {"t": "Salva configurazione", "f": "Config.save()"},
-        {"t": "Chiudi", "f": "self.df.close(False)"},
-        {"t": "Chiudi e Salva configurazione", "f": "self.df.close()"},
+        {"t": "Esci", "f": "self.df.close(False)"},
+        {"t": "Esci e Salva configurazione", "f": "self.df.close()"},
         {"t": "Ricarica", "f": "self.df.reload(False)"},
         {"t": "Ricarica e Salva configurazione", "f": "self.df.reload()"},
         {"t": "Riavvia", "f": "self.df.reboot()"},
@@ -88,7 +88,7 @@
     ],
     "plugins_sel": 0,
 
-    "extra": [
+    "extra_menu": [
         {"t": "pausa", "f": "self.df.set_paused(True)"},
         {"t": "continua", "f": "self.df.set_paused(False)"},
         {"t": "avanti", "k": "KEY_F5"},
@@ -99,19 +99,28 @@
         {"t": "stop", "f": "'stop'"}
     ],
 
-    "action_selection_word": [
+    "voice_action": [
+        {"t": "usa numero meno", "s": true, "r": true, "f": "self.set_number(-1, command)"},
+        {"t": "usa numero", "s": true, "r": true, "f": "self.set_number(1, command)"},
+        {"t": "usa meno", "s": true, "r": true, "f": "self.set_number(-1, command)"},
+        {"t": "usa", "s": true, "r": true, "f": "self.set_number(1, command)"},
+        {"t": "seleziona", "s": true, "r": false, "f": "self.select(command)"},
+        {"t": "imposta", "s": true, "r": false, "f": "self.select(command)"},
+        {"t": "apri tastiera", "s": false, "r": true, "f": "self.osk_show()"},
+        {"t": "chiudi tastiera", "s": false, "r": true, "f": "self.osk_hide()"},
+        {"t": "enter", "s": false, "r": true, "f": "self.osk_hide()"},
+        {"t": "pulisci tastiera", "s": false, "r": true, "f": "self.osk_clear()"},
+        {"t": "backspace", "s": false, "r": true, "f": "self.osk_backspace()"},
+        {"t": "left", "s": false, "r": true, "f": "self.osk_left()"},
+        {"t": "right", "s": false, "r": true, "f": "self.osk_right()"},
+        {"t": "blank", "s": false, "r": true, "f": "self.osk_blank()"},
+        {"t": "shift", "s": false, "r": true, "f": "self.osk_shift()"}
+    ],
+
+    "action_modifier_word": [
         ["aumenta", "fr"],
         ["diminuisci", "fl"],
         ["per ", "fv"],
         ["per", "fv"]
-    ],
-
-    "pre_action_selection_word": [
-        ["usa numero meno", "fm"],
-        ["usa numero", "fn"],
-        ["usa meno", "fm"],
-        ["usa", "fn"],
-        ["seleziona", "fs"],
-        ["imposta", "fs"]
     ]
 }

@@ -1,5 +1,6 @@
 import os, json, logging
 from pyray import *
+from text_to_num import text2num
 import clock
 from config import Config
 from osk import OnScreenKeyboard
@@ -18,6 +19,7 @@ class OnScreenMenu:
         # Style
         self.set_style_size(self.df.scale)
         # Menus state
+        self.lang = Config.get("voice.lang", "en")
         self.menus = self.load_menus()
         self.current = "menu"
         self.options = self.menus['menu']
@@ -136,9 +138,6 @@ class OnScreenMenu:
         self.selected = self.menus[f"{menu}_sel"]
         self.option = self.set_option()
 
-    def on_off(self, value):
-        return "on" if value else "off"
-
     def set_option(self):
         option = self.options[self.selected]
         self.is_spinbox = 'e' in option
@@ -147,12 +146,77 @@ class OnScreenMenu:
         self.in_osk = False
         return option
 
+    def on_off(self, value):
+        return "on" if value else "off"
+
+    def get_piper_enabled(self):
+        return self.va.piper_enabled if self.va else False
+
+    def set_piper_voice(self, value=None):
+        if self.va:
+            self.va.piper_enabled = value if value else not  self.va.piper_enabled
+            Config.set('voice.piper.enabled', self.va.piper_enabled)
+
+    #
+    # voice assistant support functions
+    #
     def select(self, text):
         for index, option in enumerate(self.options):
             if "t" in option and option["t"] == text:
                 self.selected = index
                 return index
         return -1
+
+    def osk_show(self, option=None):
+        if option:
+            self.option = option
+            if "d" in option:
+                self.osk.typed_text = eval(option['d'])
+        else:
+            self.option = None
+        self.is_osk = True
+        self.in_osk = True
+        logger.info(f"{self.is_osk=} {self.in_osk=} {self.osk.typed_text=}")
+
+    def osk_hide(self):
+        if self.option:
+            if "f" in self.option: exec(self.option['f'])
+        self.is_osk = False
+        self.in_osk = False
+
+    def osk_clear(self):
+        self.osk.typed_text = ""
+
+    def osk_backspace(self):
+        osk = self.osk
+        if osk.cursor > 0:
+            osk.typed_text = osk.typed_text[:osk.cursor - 1] + osk.typed_text[osk.cursor:]
+            osk.cursor -= 1
+
+    def osk_left(self):
+        osk = self.osk
+        if osk.cursor > 0:
+            osk.cursor -= 1
+
+    def osk_right(self):
+        osk = self.osk
+        if osk.cursor < len(osk.typed_text):
+            osk.cursor += 1
+
+    def osk_blank(self):
+        self.osk._insert_char(" ")
+
+    def osk_shift(self):
+        osk = self.osk
+        osk.is_shift = not osk.is_shift
+        osk.layout = osk.layouts['shift'] if osk.is_shift else osk.layouts['base']
+
+    def set_number(self, sign, num):
+        try:
+            self.number = text2num(num, lang=self.lang)
+            self.number *= sign
+        except Exception as e:
+            logger.error(f"{e}")
 
     def draw(self):
         # Draw a semi-transparent background overlay
