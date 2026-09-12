@@ -376,11 +376,6 @@ class Devices:
         vol = max(0, min(vol, 9))
         Config.set('items.types.video.volume', vol)
 
-    def set_piper_voice(self, value=None):
-        va = self.df.voice_assistant
-        va.piper_enabled = value if value else not  va.piper_enabled
-        Config.set('voice.piper.enabled', va.piper_enabled)
-
     def set_voice_threshold(self, value, delta=True):
         vt = Config.get('voice.threshold', 90)
         vt = vt + value if delta else value
@@ -388,7 +383,7 @@ class Devices:
         Config.set('voice.threshold', vt)
 
     def load_help(self):
-        with open(os.path.join(Config.RESOURCES_HELP, "help.txt"), "r") as f:
+        with open(os.path.join(Config.RESOURCES_HELP, "help.txt"), "r", encoding="UTF-8") as f:
             help = f.read()
         return help
 
