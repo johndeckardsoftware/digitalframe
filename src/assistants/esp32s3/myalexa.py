@@ -217,5 +217,5 @@ class PiperSpeechEngine(threading.Thread):
     def stop(self):
         """Stops the worker thread safely."""
         self.running = False
-        logger.info("Piper local TTS engine stopped.")
+        logger.info("Piper local TTS engine stopping.")
 
