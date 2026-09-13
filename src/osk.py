@@ -16,6 +16,8 @@ class OnScreenKeyboard:
         self.layouts = self.load_layout(layout)
         self.layout = self.layouts['base']
         self.info = self.layouts['base_info']
+        # Load phonetic map dynamically per layout (with fallback)
+        self.phonetic_map = self.layouts.get('phonetic_map', {})
         # kb state
         self.row = 0
         self.col = 0
@@ -31,28 +33,22 @@ class OnScreenKeyboard:
         with open(os.path.join(Config.RESOURCES_MENU, layout), "r", encoding="UTF-8") as f:
             return json.load(f)
 
-    # Example mapping inside osk.py
-    PHONETIC_TO_CHAR = {
-        # Italian
-        "bi": "b", "ci": "c", "di": "d", "effe": "f", "gi": "g",
-        "acca": "h", "elle": "l", "emme": "m", "enne": "n", "pi": "p",
-        "cu": "q", "erre": "r", "esse": "s", "ti": "t", "vi": "v",
-        "vu": "v", "zeta": "z", "kappa": "k", "ics": "x", "way": "y",
-        "doppia vu": "w", "i greca": "j", "i lunga": "j",
-        # English
-        "bee": "b", "cee": "c", "dee": "d", "ef": "f", "gee": "g",
-        "aitch": "h", "jay": "j", "kay": "k", "el": "l", "em": "m",
-        "en": "n", "pee": "p", "cue": "q", "ar": "r", "ess": "s",
-        "tee": "t", "vee": "v", "ex": "x", "wy": "y", "zee": "z", "zed": "z"
-    }
-
     def set_typed_char_from_voice(self, text: str):
-        # Convert recognized phonetic word into its corresponding single character
+        """Converts spoken input into keyboard action or char insertion."""
         try:
-            char = OnScreenKeyboard.PHONETIC_TO_CHAR.get(text.lower().strip(), text)
-            self._insert_char(char)
+            clean_text = text.strip()
+            # 1. Resolve phonetic map first, fallback to raw input
+            target = self.phonetic_map.get(clean_text, clean_text)
+            
+            # 2. Check if the target is an action key (e.g., "BACK", "SPACE")
+            if target in ["BACK", "SPACE", "ENTER", "LEFT", "RIGHT", "SHIFT"]:
+                self._handle_input(target)
+            else:
+                # 3. Handle casing based on current shift state
+                char_to_insert = target.upper() if self.is_shift and len(target) == 1 else target
+                self._insert_char(char_to_insert)
         except Exception as e:
-            logger.error(e)
+            logger.error(f"Voice insertion failed: {e}")
 
     def set_style_size(self, scale):
         self.key_size = int(self.info['key_size'] * scale)

@@ -114,7 +114,9 @@
         {"t": "left", "s": false, "r": true, "f": "self.osk_left()"},
         {"t": "right", "s": false, "r": true, "f": "self.osk_right()"},
         {"t": "blank", "s": false, "r": true, "f": "self.osk_blank()"},
-        {"t": "shift", "s": false, "r": true, "f": "self.osk_shift()"}
+        {"t": "shift", "s": false, "r": true, "f": "self.osk_shift()"},
+        {"t": "full vocabulary", "s": false, "r": true, "f": "voice.reload_vosk_vocabulary(None)"},
+        {"t": "partial vocabulary", "s": false, "r": true, "f": "voice.reload_vosk_vocabulary(voice.vosk_vocabulary)"}
     ],
 
     "action_modifier_word": [

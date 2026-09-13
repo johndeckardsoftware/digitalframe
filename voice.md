@@ -147,6 +147,66 @@ When a voice phrase is received by `on_speech_received(text, locale)` from eithe
 2. **Action Modifier Prefixes (`action_modifier_word`):** Handles prefix actions (e.g., `"incrementa"`, `"decrementa"`) to adjust spinbox parameters (`option["fr"]`, `option["fl"]`).
 3. **Fallback Actions:** Custom keyword fallbacks (e.g., `"pausa"`, `"avanti"`, `"indietro"`) map directly to core display functions.
 
+
+### Interactive Voice Menu Operation & Micro Wake Word Flow
+
+When using the ESP32-S3 satellite node to control **DigitalFrame**, interactive voice sessions follow a wake-word-driven stream lifecycle:
+
+1. **Wake Word Trigger ("alexa"):**
+* The local micro wake word engine running on the ESP32-S3 continuously listens for the wake word `"alexa"`.
+* Upon detecting `"alexa"`, the ESP32-S3 opens a continuous raw UDP audio stream (PCM 16kHz, 16-bit Mono) directed to `DigitalFrame`.
+
+
+
+
+2. **Interactive Menu Navigation & OSK Input:**
+* Once streaming is active, spoken commands are processed continuously by the local Vosk recognizer on `DigitalFrame`.
+
+
+* Commands match menu targets dynamically via fuzzy string matching.
+
+
+* If an item with virtual keyboard input (`"vk": true`) is selected, the On-Screen Keyboard (OSK) opens, allowing characters or phonetic keys to be dictated sequentially into the active text buffer.
+
+
+
+
+3. **Session Termination ("stop"):**
+* The audio stream remains open and interactive until the spoken command `"stop"` is recognized.
+
+
+* Receiving `"stop"` signals the application and ESP32-S3 to terminate the streaming session and return the node to low-power wake-word listening mode.
+
+
+
+
+
+1. **Wake Up Satellite Node:** ESP32-S3 local micro wake word.
+Say "alexa" to trigger the ESP32-S3 to start streaming UDP PCM audio directly to DigitalFrame.
+
+
+
+
+Verification: Check that the node indicator LED/status shows an active UDP stream.
+
+
+2. **Issue Voice Commands or Navigate Menus:** Continuous Vosk Recognition.
+Speak menu keywords (e.g., "menu", "options", "incrementa") or dictate characters if the On-Screen Keyboard is active.
+
+
+
+
+Verification: Confirm that the menu highlight moves, values change, or letters appear on the OSK buffer.
+
+
+3. **Close Stream Session:** Termination Command.
+Say "stop" to end the active audio streaming session.
+
+
+
+
+Verification: Ensure the UDP stream stops and the system returns to standalone slideshow or idle mode.
+
 ---
 
 ## Comparison Matrix

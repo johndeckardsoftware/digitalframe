@@ -44,6 +44,7 @@ class VoiceAssistant:
         # MyAlexa ESP32S3 Speech to Text Backend Thread
         self.esp32s3_enabled = Config.get("voice.esp32s3.enabled", False)
         self.vosk_server = None
+        self.vosk_vocabulary = None
 
         # MyAlexa Piper TTS Engine Thread
         self.piper_enabled = Config.get("voice.piper.enabled", False)
@@ -128,31 +129,20 @@ class VoiceAssistant:
             for n in range(0, 255):
                 words.append(num2words(n, lang=self.lang))
 
-            # English letter pronunciations
-            en_letter_names = [
-                "a", "bee", "cee", "dee", "e", "ef", "gee", "aitch", "eye", "jay",
-                "kay", "el", "em", "en", "o", "pee", "cue", "ar", "ess", "tee",
-                "you", "vee", "double-you", "ex", "wy", "zee", "zed"
-            ]
-
-            # Italian letter pronunciations
-            it_letter_names = [
-                "a", "bi", "ci", "di", "e", "effe", "gi", "acca", "i", "elle",
-                "emme", "enne", "o", "pi", "cu", "erre", "esse", "ti", "u", "vi",
-                "vu", "zeta", "i lunga", "i greca", "kappa", "doppia vu", "ics", "way"
-            ]
-
-            # Pick based on self.lang configuration
-            letter_names = it_letter_names if self.lang == "it" else en_letter_names
-
-            for name in letter_names:
-                words.append(name)
-                words.extend(name.split())  # Handles multi-word names like "doppia vu" or "i greca"
-
+            # Dynamically pull letter pronunciations/phonetics from the active OSK layout
+            if hasattr(self.menu, "osk") and hasattr(self.menu.osk, "phonetic_map"):
+                phonetic_keys = self.menu.osk.phonetic_map.keys()
+                for name in phonetic_keys:
+                    words.append(name)
+                    words.extend(name.split())  # Handles multi-word names like "doppia vu" or "question mark"
         except Exception as e:
             logger.warning(f"Could not extract menu words: {e}")
 
         return list(set(words))
+
+    def reload_vosk_vocabulary(self, vocabulary):
+        if self.vosk_server and self.esp32s3_enabled:
+            self.vosk_server.update_vocabulary(vocabulary)
 
     def on_speech_received(self, text: str, locale: str):
         """Callback triggered when a voice command is captured by AlexaSpeechBackend or VoskSpeechBackend."""
@@ -171,7 +161,7 @@ class VoiceAssistant:
             if command.startswith(words):
                 if voice_action['s']:
                     command = command.replace(words, "", 1).strip()
-                ret = eval(voice_action['f'], {"self": self.menu, "Config": Config, "ddcutil": ddcutil, "command": command})
+                ret = eval(voice_action['f'], {"voice": self, "self": self.menu, "Config": Config, "ddcutil": ddcutil, "command": command})
                 logger.debug(f"{voice_action=} {command=}")
                 if voice_action['r']:
                     return "ok"
@@ -286,9 +276,9 @@ class VoiceAssistant:
             vocabulary = Config.get('voice.esp32s3.vocabulary', True)
 
             if vocabulary:
-                menu_vocab = self.extract_menu_vocabulary()
+                self.vosk_vocabulary = self.extract_menu_vocabulary()
             else:
-                menu_vocab = None
+                self.vosk_vocabulary = None
 
             self.vosk_server = VoskSpeechBackend(
                 udp_ip=udp_ip,
@@ -296,7 +286,7 @@ class VoiceAssistant:
                 esp32_ip=esp32_ip,
                 esp32_port=esp32_port,
                 model_path=model_path,
-                vocabulary=menu_vocab,
+                vocabulary=self.vosk_vocabulary,
                 on_speech_callback=self.on_speech_received
             )
             self.vosk_server.start(in_thread=True)

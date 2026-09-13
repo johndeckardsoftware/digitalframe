@@ -186,6 +186,7 @@ class OnScreenMenu:
 
     def osk_clear(self):
         self.osk.typed_text = ""
+        self.osk.cursor = 0
 
     def osk_backspace(self):
         osk = self.osk

@@ -23,5 +23,31 @@
         "SPACE": [210, 270],
         "LEFT": [560, 130],
         "RIGHT": [700, 130]
+    },
+    "phonetic_map": {
+        "bee": "b", "cee": "c", "dee": "d", "ef": "f", "gee": "g",
+        "aitch": "h", "jay": "j", "kay": "k", "el": "l", "em": "m",
+        "en": "n", "pee": "p", "cue": "q", "ar": "r", "ess": "s",
+        "tee": "t", "vee": "v", "ex": "x", "wy": "y", "zee": "z", "zed": "z",
+
+        "zero": "0", "one": "1", "two": "2", "three": "3", "four": "4",
+        "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9",
+
+        "dash": "-", "minus": "-", "equals": "=", "equal": "=",
+        "comma": ",", "period": ".", "dot": ".", "slash": "/", 
+        "backslash": "\\", "semicolon": ";", "apostrophe": "'", 
+        "quote": "'", "left bracket": "[", "right bracket": "]",
+
+        "exclamation": "!", "at": "@", "hash": "#", "pound": "#",
+        "dollar": "$", "percent": "%", "caret": "^", "ampersand": "&",
+        "and": "&", "asterisk": "*", "star": "*", "open parenthesis": "(",
+        "close parenthesis": ")", "underscore": "_", "plus": "+",
+        "colon": ":", "double quote": "\"", "open brace": "{",
+        "close brace": "}", "pipe": "|", "less than": "<",
+        "greater than": ">", "question mark": "?",
+
+        "space": "SPACE", "backspace": "BACK", "delete": "BACK",
+        "enter": "ENTER", "return": "ENTER", "shift": "SHIFT",
+        "left": "LEFT", "right": "RIGHT"
     }
 }

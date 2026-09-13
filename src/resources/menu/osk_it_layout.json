@@ -23,5 +23,36 @@
         "SPACE": [210, 270],
         "LEFT": [560, 130],
         "RIGHT": [700, 130]
+    },
+    "phonetic_map": {
+        "a": "a", "bi": "b", "bee": "b", "ci": "c", "di": "d", "e": "e", "effe": "f", 
+        "gi": "g", "gii": "g", "dji": "g", "acca": "h", "i": "i", "elle": "l", "emme": "m", 
+        "enne": "n", "o": "o", "pi": "p", "pii": "p", "pee": "p", "cu": "q", "erre": "r", 
+        "esse": "s", "ti": "t", "u": "u", "vi": "v", "vu": "v", 
+        "zeta": "z", "kappa": "k", "ics": "x", "way": "y", "doppia vu": "w", 
+        "i greca": "j", "i lunga": "j",
+
+        "a accentata": "à", "e accentata grave": "è", "e accentata acuta": "é", 
+        "e accentata": "è", "i accentata": "ì", "o accentata": "ò", 
+        "u accentata": "ù", "c cediglia": "ç",
+
+        "zero": "0", "uno": "1", "due": "2", "tre": "3", "quattro": "4",
+        "cinque": "5", "sei": "6", "sette": "7", "otto": "8", "nove": "9",
+
+        "back slash": "\\", "apostrofo": "'", "apice": "'", "più": "+", "virgola": ",", 
+        "punto": ".", "trattino": "-", "meno": "-",
+
+        "barra verticale": "|", "pipe": "|", "punto esclamativo": "!", 
+        "virgolette": "\"", "doppie virgolette": "\"", "sterlina": "£", 
+        "dollaro": "$", "percento": "%", "e commerciale": "&", "slash": "/", 
+        "barra": "/", "apri parentesi": "(", "chiudi parentesi": ")", 
+        "uguale": "=", "punto interrogativo": "?", "accento circonflesso": "^", 
+        "per": "*", "asterisco": "*", "gradi": "°", "sezione": "§", 
+        "paragrafo": "§", "punto e virgola": ";", "due punti": ":", 
+        "trattino basso": "_", "underscore": "_",
+
+        "spazio": "SPACE", "cancella": "BACK", "back": "BACK", 
+        "invio": "ENTER", "maiuscolo": "SHIFT", "shift": "SHIFT", 
+        "sinistra": "LEFT", "destra": "RIGHT"
     }
 }
