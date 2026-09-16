@@ -1,0 +1,6 @@
+# torch for pc with invidia gpu
+#torch
+# torch for raspberry
+torchvision --index-url https://download.pytorch.org/whl/cpu
+transformers
+pillow
