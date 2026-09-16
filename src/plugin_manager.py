@@ -7,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 class PluginManager:
     def __init__(self, digitalframe, config):
-        logger.setLevel(Config.get("window.log_level", logging.INFO))
         #logger.setLevel(logging.DEBUG)
         self.df = digitalframe
         self.devices = digitalframe.devices
