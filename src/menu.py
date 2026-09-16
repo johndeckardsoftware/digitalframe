@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 
 class OnScreenMenu:
     def __init__(self, digitalframe, devices):
-        logger.setLevel(Config.get("window.log_level", logging.INFO))
         #logger.setLevel(logging.DEBUG)
         self.df = digitalframe
         self.devices = devices
@@ -73,6 +72,27 @@ class OnScreenMenu:
         menus['mattes_sel'] = 0
 
         return menus
+
+    # create a generic menu to choose from a list
+    def create_list(self, values, f=None, back="menu"):
+        items = Config.get(values, []) if isinstance(values, str) else values
+        lmo = []
+        for item in items:
+            lmo.append({"t": item, "f": f"self.set_list(self.selected, '{f}')"})
+        lmo.append({"t": "Back", "back": True, "m": back})
+        self.menus['list'] = lmo
+        self.menus['list_sel'] = 0
+        if not 'list_text' in self.menus:
+            self.menus['list_text'] = ""
+        #return self.menus['list_text']
+        return ""
+
+    def set_list(self, index, f=None):
+        self.menus['list_text'] = self.menus['list'][index]['t']
+        if f: exec(f)
+
+    def get_list(self):
+        return self.menus['list_text']
 
     def update(self, key):
         #logger.debug(f"{key=}")

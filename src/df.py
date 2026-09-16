@@ -18,6 +18,7 @@ from devices import Devices
 from mqtt import MQTT
 from plugin_manager import PluginManager
 from voice import VoiceAssistant
+from indexer import ImageFeatureIndexer
 
 class DigitalFrame:
     def __init__(self, fullscreen=None):
@@ -101,6 +102,8 @@ class DigitalFrame:
         self.plugins = None
         # sound
         self.sound_enabled = Config.get('items.types.video.sound', False)
+        # image indexer
+        self.indexer = None
         # work handles
         self.texture = None
         self.matte = None
@@ -167,13 +170,16 @@ class DigitalFrame:
         self.on_platform_set()
         FolderWatch(self.items)
 
+        if Config.get('indexer.enabled', False):
+            self.indexer = ImageFeatureIndexer(df_item_list=self.items)
+
         if plugins := Config.get('plugins', None):
             self.plugins = PluginManager(self, plugins)
             self.devices.plugins = self.plugins
 
         if self.fullscreen: set_window_state(ConfigFlags.FLAG_WINDOW_UNDECORATED|ConfigFlags.FLAG_WINDOW_TOPMOST)
         else: set_window_state(ConfigFlags.FLAG_WINDOW_RESIZABLE)
-        init_window(self.width, self.height, "DigitalFrame v2.0")
+        init_window(self.width, self.height, "DigitalFrame v3.0")
         if self.fullscreen: disable_cursor()
         self.monitor = get_current_monitor()
         if self.fullscreen:
@@ -416,6 +422,8 @@ motion={self.motion}, {self.debug}"
                 self.mqtt.stop()
             if self.voice_assistant:
                 self.voice_assistant.stop()
+            if self.indexer:
+                self.indexer.stop()
             if self.on_exit_save_config:
                 Config.save()
             self.logger.info("stopped.")
@@ -454,7 +462,6 @@ def ask_item_path():
 def main(args):
     try:
         logging.basicConfig(filename=args.log_file, filemode='a', format="%(asctime)s %(levelname)s %(module)s %(lineno)s: %(message)s", level=logging.INFO)
-        #logging.basicConfig(stream=sys.stdout, level=logging.INFO)
         logger = logging.getLogger(__name__)
         logger.info(f"starting {sys.argv}")
 
@@ -464,6 +471,7 @@ def main(args):
                 Config.configure(path)
 
             log_level = Config.get("window.log_level", logging.INFO)
+            logging.getLogger().setLevel(log_level)
             logger.setLevel(log_level)
             if Config.get("window.hide_taskbar", True): set_autohide_and_notification(True)
             df = DigitalFrame(fullscreen=args.fullscreen)
@@ -477,7 +485,7 @@ def main(args):
         return 129
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='digitalframe 1.0')
+    parser = argparse.ArgumentParser(description='digitalframe 3.0')
     parser.add_argument("-c", "--config", help="Config filename", dest="config_file", default="config.json")
     parser.add_argument("-l", "--log", help="Log file", dest="log_file", default="digitalframe.log")
     parser.add_argument("-f", "--fullscreen", action="store_true", help="Start app in fullscreen")

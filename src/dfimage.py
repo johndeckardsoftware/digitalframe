@@ -17,7 +17,6 @@ class DFItemImage:
         self.folder = folder
         self.name = entry.name
         self.type = ItemType.IMAGE
-        #self.df.logger.debug(f"{self.file=} {self.name=}")
         self.width, self.height, self.tags = fast_image_info(self.file, self.df.logger)
         self.ratio = round(self.width / self.height, 2)
         self.x = 0
@@ -124,7 +123,9 @@ class DFItemImage:
 
         if not self.histogram:
             self.histogram = Histogram(self.name, image)
-        self.matte_rgb = self.histogram.get_mat_color()
+            self.matte_rgb = self.histogram.get_mat_color()
+            if self.histogram.info:
+                self.tags["Hue"] = self.histogram.info['tint_description']
 
         width = height = left_margin = top_margin = 0
         if df.ratio == self.ratio:

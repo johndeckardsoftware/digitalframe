@@ -1,4 +1,4 @@
-import os, random, time
+import os, random, time, re
 import ast
 from config import Config, ItemType
 
@@ -135,7 +135,72 @@ class DFItemList:
                     self.direction = 1
                     return None
 
-    def check(self, i):     # and version
+    def matches_search_tag_parser(self, item, filter_str):
+        """
+        Parses tokenized search queries:
+          - 'Canon' -> Substring search across file path, name, or any EXIF tag value
+          - 'make:Canon' or 'artist=John Doe' -> Key/value EXIF search
+        """
+        tokens = filter_str.strip().split()
+        tags = getattr(item, 'tags', {}) or {}
+
+        for token in tokens:
+            if ":" in token or "=" in token:
+                key, val = re.split(r'[:=]', token, 1)
+                key_lower, val_lower = key.lower(), val.lower()
+
+                matched = any(
+                    key_lower in k.lower() and val_lower in str(v).lower()
+                    for k, v in tags.items()
+                )
+                if not matched:
+                    return False
+            else:
+                term = token.lower()
+                in_name = term in item.name.lower()
+                in_file = term in item.file.lower()
+                in_tags = any(term in str(v).lower() for v in tags.values())
+                if not (in_name or in_file or in_tags):
+                    return False
+        return True
+
+    def get_filter_namespace(self, item):
+        """
+        Exposes item metadata shortcuts as well as all tag keys formatted
+        into valid python variable identifiers.
+        """
+        tags = getattr(item, 'tags', {}) or {}
+
+        # Base namespace attributes
+        ns = {
+            "file": item.file,
+            "name": item.name,
+            "tags": tags,
+            # Common explicit shortcuts
+            "make": tags.get("Image Make", ""),
+            "model": tags.get("Image Model", ""),
+            "artist": tags.get("Image Artist", "") or tags.get("EXIF CameraOwnerName", ""),
+            "date": tags.get("EXIF DateTimeOriginal", "") or tags.get("Image DateTime", ""),
+            "hue": tags.get("Hue", ""),
+        }
+
+        # Dynamically inject ALL tags converted to snake_case identifier keys
+        # e.g., "EXIF ExposureTime" -> "exposuretime", "Image Model" -> "model"
+        for k, v in tags.items():
+            # Remove the first word (e.g., "EXIF", "Image", "GPS")
+            parts = k.strip().split(maxsplit=1)
+            remaining_key = parts[1] if len(parts) > 1 else parts[0]
+            
+            # Format to snake_case
+            clean_key = re.sub(r'\W+', '_', remaining_key).lower().strip('_')
+            
+            # Only add if valid and not already in ns
+            if clean_key and clean_key not in ns:
+                ns[clean_key] = v
+
+        return ns
+
+    def check(self, i):
         item = self.items[i]
         if item.paired:
             return False
@@ -143,13 +208,30 @@ class DFItemList:
         if item.private and not self.private:
             return False
 
+        if self.df.indexer and self.df.indexer.selected:
+            ret = next((sel for sel in self.df.indexer.selected if sel.get("file") == item.file), None)
+            if not ret: return False
+
         if self.subfolder != "" and not self.subfolder in item.file:
             return False
 
         if self.filter != "":
             ret = False
             try:
-                ret = eval(self.filter, vars(item))
+                # Mode switch based on first character:
+                if self.filter.startswith('='):
+                    # Original evaluation: Direct access to item attributes/methods
+                    ret = eval(self.filter[1:], vars(item))
+
+                elif self.filter.startswith('?'):
+                    # Context Shortcuts mode: Evaluates inside namespace containing tag variables
+                    ns = self.get_filter_namespace(item)
+                    ret = eval(self.filter[1:], ns)
+
+                else:
+                    # Search Tag Parser mode: Lightweight tokenized string matching
+                    ret = self.matches_search_tag_parser(item, self.filter)
+
             except Exception as e:
                 if self.filter != self.filter_prev:
                     self.filter_prev = self.filter
@@ -185,9 +267,21 @@ class DFItemList:
         try:
             if filter == "":
                 self.filter = filter
-            else:
-                ast.parse(filter, mode='eval')
+            elif filter.startswith('='):
+                ast.parse(filter[1:], mode='eval')
                 self.filter = filter
+            elif filter.startswith('?'):
+                ast.parse(filter[1:], mode='eval')
+                self.filter = filter
+            else:
+                # Simple search tag parser mode requires no AST validation
+                self.filter = filter
+            # save filter
+            recent = Config.get('items.recent_filter', [])
+            if not filter in recent:
+                recent.append(filter)
+                Config.set('items.recent_filter', recent)
+
             return True
         except SyntaxError as e:
             self.df.logger.warning(f"filter: {filter}::{e}")
@@ -268,75 +362,3 @@ class DFItemList:
             Config.set('items.types.image.metadata', meta)
             Config.set('items.types.image.metadata_format', "{name} {title} {caption} {date[:10]} {location} {directory}")
         return meta
-"""
-Exif example
-{
-    "Image ExifOffset": 241,
-    "GPS GPSVersionID": "2.2.0.0",
-    "GPS GPSLatitudeRef": "N",
-    "GPS GPSLatitude": [51, 30, 14.78],
-    "GPS GPSLongitudeRef": "W",
-    "GPS GPSLongitude": [0, 4, 28.47],
-    "GPS GPSAltitudeRef": 0,
-    "GPS GPSAltitude": 77.88,
-    "GPS GPSTimeStamp": [12, 13, 40],
-    "GPS GPSDOP": 11.965,
-    "GPS GPSProcessingMethod": "ASCII\x00\x00\x00fused",
-    "GPS GPSDate": "2018-08-22",
-    "Image GPSInfo": "20464",
-    "Image ImageWidth": 4032,
-    "Image ImageLength": 3024,
-    "Image Make": "Google",
-    "Image Model": "Pixel 2",
-    "Image Orientation": "Horizontal (normal)",
-    "Image XResolution": 72,
-    "Image YResolution": 72,
-    "Image ResolutionUnit": "Pixels/Inch",
-    "Image Software": "HDR+ 1.0.199571065z",
-    "Image DateTime": "2018-08-22 13:13:41",
-    "Image YCbCrPositioning": "Centered",
-	"Image ImageDescription": "description here",
-	"Image Artist": "Artist",
-    "Image Copyright": "Copyright",
-    "EXIF ExposureTime": 0.000299,
-    "EXIF FNumber": 1.8,
-    "EXIF ExposureProgram": "Program Normal",
-    "EXIF ISOSpeedRatings": 75,
-    "EXIF ExifVersion": "0220",
-    "EXIF DateTimeOriginal": "2018-08-22 13:13:41",
-    "EXIF DateTimeDigitized": "2018-08-22 13:13:41",
-    "EXIF ComponentsConfiguration": "YCbCr",
-    "EXIF ShutterSpeedValue": 11.71,
-    "EXIF ApertureValue": 1.7,
-    "EXIF BrightnessValue": 8.82,
-    "EXIF ExposureBiasValue": 0,
-    "EXIF MaxApertureValue": 1.7,
-    "EXIF SubjectDistance": 1.835,
-    "EXIF MeteringMode": "CenterWeightedAverage",
-    "EXIF Flash": "Flash did not fire, compulsory flash mode",
-    "EXIF FocalLength": 4.442,
-    "EXIF SubSecTime": "594779",
-    "EXIF SubSecTimeOriginal": "594779",
-    "EXIF SubSecTimeDigitized": "594779",
-    "EXIF FlashPixVersion": "0100",
-    "EXIF ColorSpace": "sRGB",
-    "EXIF ExifImageWidth": 4032,
-    "EXIF ExifImageLength": 3024,
-    "Interoperability InteroperabilityIndex": "R98",
-    "Interoperability InteroperabilityVersion": "0100",
-    "EXIF InteroperabilityOffset": "20434",
-    "EXIF SensingMethod": "One-chip color area",
-    "EXIF SceneType": "Directly Photographed",
-    "EXIF CustomRendered": "Custom",
-    "EXIF ExposureMode": "Auto Exposure",
-    "EXIF WhiteBalance": "Auto",
-    "EXIF DigitalZoomRatio": 0,
-    "EXIF FocalLengthIn35mmFilm": 27,
-    "EXIF SceneCaptureType": "Standard",
-    "EXIF Contrast": "Normal",
-    "EXIF Saturation": "Normal",
-    "EXIF Sharpness": "Normal",
-    "EXIF SubjectDistanceRange": 2,
-	"EXIF CameraOwnerName": "owner name",
-}
-"""
