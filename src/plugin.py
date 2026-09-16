@@ -11,7 +11,6 @@ class PluginWrapper(ABC):
         self.config = config.get('settings', {})
         self.active = False
         self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(Config.get("window.log_level", logging.INFO))
         #self.logger.setLevel(logging.DEBUG)
 
     def toggle_active(self):
