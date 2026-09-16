@@ -10,6 +10,8 @@
         {"g": "f'Ambient Light ({self.on_off(self.df.ambient_light)})'", "k": "KEY_L"},
         {"t": "Light Settings", "m": "light"},
         {"g": "f'Folder ({self.df.items.get_subfolder()})'", "m": "folders"},
+        {"t": "Tag Search", "m": "tag"},
+        {"t": "Content Search", "m": "indexer"},
         {"g": "f'Matte ({Config.get(\"items.types.image.matte.texture\", None)})'", "m": "mattes"},
         {"g": "f'Border ({Config.get(\"items.types.image.border.file\", None)})'", "m": "borders"},
         {"e": "f'Display time < {self.df.image_ttl} > sec.'",
@@ -18,7 +20,7 @@
          "fl": "self.devices.set_sleep(-5)", "fr": "self.devices.set_sleep(5)", "fv": "self.devices.set_sleep(self.number, delta=False)"},
         {"g": "f'Shuffle playback ({self.on_off(self.df.items.get_shuffle())})'", "k": "KEY_S"},
         {"t": "Metadata", "m": "meta"},
-        {"g": "f'Clock  ({self.on_off(self.df.timer)})'", "k": "KEY_C"},
+        {"g": "f'Clock ({self.on_off(self.df.timer)})'", "k": "KEY_C"},
         {"t": "Extensions", "m": "plugins"},
         {"t": "Other Tools", "m": "debug"}
     ],
@@ -58,8 +60,6 @@
     ],
     "meta_sel": 0,
     "debug": [
-        {"t": "Filter", "k": "CTRL+KEY_Q"},
-        {"g": "f'Edit Filter ({self.df.items.get_filter()})'", "vk": true, "d": "f'{self.df.items.get_filter()}'", "f": "self.df.set_tags_filter(self.osk.typed_text)"},
         {"e": "f'Voice quality < {Config.get(\"voice.threshold\", 90)} >'",
          "fl": "self.devices.set_voice_threshold(-5)",
          "fr": "self.devices.set_voice_threshold(5)",
@@ -87,6 +87,34 @@
         {"t": "Back", "back": true, "m": "menu"}
     ],
     "plugins_sel": 0,
+    "tag": [
+        {"e": "f'Select Filter (actual: \"{self.df.items.get_filter()}\") {self.create_list(\"items.recent_filter\", \"self.df.set_tags_filter(self.get_list())\", \"tag\")}'", "m": "list"},
+        {"g": "f'Edit Filter'", "vk": true,
+         "d": "f'{self.df.items.get_filter()}'",
+         "f": "self.df.set_tags_filter(self.osk.typed_text)"},
+        {"t": "Back", "back": true, "m": "menu"}
+    ],
+    "tag_sel": 0,
+    "indexer": [
+        {"e": "f'Select Labels (actual: \"{self.df.indexer.get_labels()}\") {self.create_list(\"indexer.recent_labels\", \"self.df.indexer.set_labels(self.get_list())\", \"indexer\")}'", "m": "list"},
+        {"g": "f'Edit Labels ({self.df.indexer.get_labels()})'", "vk": true,
+         "d": "f'{self.df.indexer.get_labels()}'",
+         "f": "self.df.indexer.find_photos(self.osk.typed_text)"},
+        {"e": "f'Treshold (1-100) < {self.df.indexer.get_threshold()} >'",
+         "fl": "self.df.indexer.set_threshold(-1)",
+         "fr": "self.df.indexer.set_threshold(1)",
+         "fv": "self.df.indexer.set_threshold(self.number, delta=False)"},
+        {"e": "f'Maximum photos  < {self.df.indexer.get_max_results()} >'",
+         "fl": "self.df.indexer.set_max_results(-1)",
+         "fr": "self.df.indexer.set_max_results(1)",
+         "fv": "self.df.indexer.set_max_results(self.number, delta=False)"},
+        {"t": "Back", "back": true, "m": "menu"}
+    ],
+    "indexer_sel": 0,
+
+    "list": [],
+    "list_sel": 0,
+    "list_text": "",
 
     "extra_menu": [
         {"t": "pause", "f": "self.df.set_paused(True)"},

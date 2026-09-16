@@ -10,6 +10,8 @@
         {"g": "f'Luce Ambiente ({self.on_off(self.df.ambient_light)})'", "k": "KEY_L"},
         {"t": "Configurazione Luce", "m": "light"},
         {"g": "f'Cartella ({self.df.items.get_subfolder()})'", "m": "folders"},
+        {"t": "Ricerca Tag", "m": "tag"},
+        {"t": "Ricerca Contenuto", "m": "indexer"},
         {"g": "f'Passepartout ({Config.get(\"items.types.image.matte.texture\", None)})'", "m": "mattes"},
         {"g": "f'Bordo ({Config.get(\"items.types.image.border.file\", None)})'", "m": "borders"},
         {"e": "f'Durata visione < {self.df.image_ttl} > sec.'",
@@ -18,7 +20,7 @@
          "fl": "self.devices.set_sleep(-5)", "fr": "self.devices.set_sleep(5)", "fv": "self.devices.set_sleep(self.number, delta=False)"},
         {"g": "f'Riproduzione casuale ({self.on_off(self.df.items.get_shuffle())})'", "k": "KEY_S"},
         {"t": "Metadati", "m": "meta"},
-        {"g": "f'Orologio  ({self.on_off(self.df.timer)})'", "k": "KEY_C"},
+        {"g": "f'Orologio ({self.on_off(self.df.timer)})'", "k": "KEY_C"},
         {"t": "Estensioni", "m": "plugins"},
         {"t": "Altri Strumenti", "m": "debug"}
     ],
@@ -58,18 +60,16 @@
     ],
     "meta_sel": 0,
     "debug": [
-        {"t": "Filtro", "k": "CTRL+KEY_Q"},
-        {"g": "f'Modifica Filtro ({self.df.items.get_filter()})'", "vk": true, "d": "f'{self.df.items.get_filter()}'", "f": "self.df.set_tags_filter(self.osk.typed_text)"},
         {"e": "f'Qualità voce < {Config.get(\"voice.threshold\", 90)} >'",
          "fl": "self.devices.set_voice_threshold(-5)",
          "fr": "self.devices.set_voice_threshold(5)",
          "fv": "self.devices.set_voice_threshold(self.number, delta=False)"},
-        {"g": "f'Suono Video ({self.on_off(self.df.sound_enabled)})'", "f": "self.devices.set_video_sound()"}, 
+        {"g": "f'Suono Video ({self.on_off(self.df.sound_enabled)})'", "f": "self.devices.set_video_sound()"},
         {"e": "f'Volume < {Config.get(\"items.types.video.volume\", 5)} >'",
          "fl": "self.devices.set_volume(-1)",
          "fr": "self.devices.set_volume(1)",
          "fv": "self.devices.set_volume(self.number, delta=False)"},
-        {"g": "f'Voce di conferma ({self.on_off(self.get_piper_enabled())})'", "f": "self.set_piper_voice()"}, 
+        {"g": "f'Voce di conferma ({self.on_off(self.get_piper_enabled())})'", "f": "self.set_piper_voice()"},
         {"g": "f'Diagnostica ({self.on_off(self.df.show_debug)})'", "k": "CTRL+KEY_D"},
         {"t": "Diagnostica Sistema", "k": "CTRL+KEY_M"},
         {"g": "f'Riservato ({self.on_off(self.df.items.private)})'", "k": "KEY_F6"},
@@ -87,6 +87,34 @@
         {"t": "Indietro", "back": true, "m": "menu"}
     ],
     "plugins_sel": 0,
+    "tag": [
+        {"e": "f'Seleziona Filtro (actual: \"{self.df.items.get_filter()}\") {self.create_list(\"items.recent_filter\", \"self.df.set_tags_filter(self.get_list())\", \"tag\")}'", "m": "list"},
+        {"g": "f'Modifica Filtro'", "vk": true,
+         "d": "f'{self.df.items.get_filter()}'",
+         "f": "self.df.set_tags_filter(self.osk.typed_text)"},
+        {"t": "Indietro", "back": true, "m": "menu"}
+    ],
+    "tag_sel": 0,
+    "indexer": [
+        {"e": "f'Seleziona Caratteristiche (corrente: \"{self.df.indexer.get_labels()}\") {self.create_list(\"indexer.recent_labels\", \"self.df.indexer.set_labels(self.get_list())\", \"indexer\")}'", "m": "list"},
+        {"g": "f'Modifica Caratteristiche ({self.df.indexer.get_labels()})'", "vk": true,
+         "d": "f'{self.df.indexer.get_labels()}'",
+         "f": "self.df.indexer.find_photos(self.osk.typed_text)"},
+        {"e": "f'Soglia (1-100) < {self.df.indexer.get_threshold()} >'",
+         "fl": "self.df.indexer.set_threshold(-1)",
+         "fr": "self.df.indexer.set_threshold(1)",
+         "fv": "self.df.indexer.set_threshold(self.number, delta=False)"},
+        {"e": "f'Massima quantità foto < {self.df.indexer.get_max_results()} >'",
+         "fl": "self.df.indexer.set_max_results(-1)",
+         "fr": "self.df.indexer.set_max_results(1)",
+         "fv": "self.df.indexer.set_max_results(self.number, delta=False)"},
+        {"t": "Indietro", "back": true, "m": "menu"}
+    ],
+    "indexer_sel": 0,
+
+    "list": [],
+    "list_sel": 0,
+    "list_text": "",
 
     "extra_menu": [
         {"t": "pausa", "f": "self.df.set_paused(True)"},
