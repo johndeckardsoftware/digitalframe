@@ -31,7 +31,7 @@ Simple digital frame application developed in Python using [raylib](https://elec
 | dfmodel.py | 3D model in .GLB format handler.|
 | dfshader.py | Shader code wrapper to easily manage shader |
 | menu.py | On Screen Menu. |
-| osk.py | On Screen Keyboad. |
+| osk.py | On Screen Keyboard. |
 | mqtt.py | Integration with Home Assitant. |
 | csync.py | Rclone cloud folder synchronization runner. |
 | indexer.py | Background CLIP feature extraction and image search indexer. |
