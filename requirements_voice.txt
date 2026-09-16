@@ -1,0 +1,7 @@
+ask-sdk-core
+flask
+vosk
+piper-tts
+rapidfuzz
+num2words
+text2num
