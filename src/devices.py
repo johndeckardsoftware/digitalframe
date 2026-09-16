@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 class Devices:
     def __init__(self, digitalframe):
-        logger.setLevel(Config.get("window.log_level", logging.INFO))
         #logger.setLevel(logging.DEBUG)
         self.df = digitalframe
         if Config.get('cron.enabled', True):
