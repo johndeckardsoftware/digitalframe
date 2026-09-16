@@ -6,6 +6,9 @@
 
 This document outlines the three available mechanisms for controlling the **DigitalFrame** application via voice: **Local Smart Home Device Emulation (Fauxmo)**, **Custom Voice Command Integration (SpeechToText Skill)**, and **Local Offline Speech Recognition (Vosk + UDP Nodes)**.
 
+
+    Require install of requirements_voice.txt
+
 ---
 
 ## 1. Local Smart Home Device Emulation via Fauxmo

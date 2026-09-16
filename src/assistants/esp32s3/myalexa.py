@@ -42,14 +42,14 @@ class VoskSpeechBackend:
         self.running = False
         self.thread: Optional[threading.Thread] = None
 
-        # 1. Initialize Vosk Model (https://alphacephei.com/vosk/models to download your language model)
+        # Initialize Vosk Model (https://alphacephei.com/vosk/models to download your language model)
         try:
             self.model = Model(self.model_path)
         except Exception as e:
             logger.error(f"Could not load Vosk model from '{self.model_path}': {e}")
             return
 
-        # 2. Configure vocabulary grammar constraint if vocabulary list is supplied
+        # Configure vocabulary grammar constraint if vocabulary list is supplied
         if vocabulary and len(vocabulary) > 0:
             # Format list to lower case and include [unk] to handle unknown utterances
             clean_vocab = list(set([str(w).lower().strip() for w in vocabulary if w]))
@@ -61,6 +61,25 @@ class VoskSpeechBackend:
             self.recognizer = KaldiRecognizer(self.model, self.sample_rate, vocab_json)
         else:
             self.recognizer = KaldiRecognizer(self.model, self.sample_rate)
+
+    def update_vocabulary(self, vocabulary: list):
+        """Dynamically reloads the Vosk recognizer with new vocabulary at runtime."""
+        try:
+            if vocabulary and len(vocabulary) > 0:
+                # Format list to lower case and include [unk] to handle unknown utterances
+                clean_vocab = list(set([str(w).lower().strip() for w in vocabulary if w]))
+                if "[unk]" not in clean_vocab:
+                    clean_vocab.append("[unk]")
+
+                # Format vocabulary array to Vosk JSON string requirement
+                vocab_json = json.dumps(vocabulary, ensure_ascii=False)
+                # Re-initialize recognizer with new vocabulary context
+                self.recognizer = KaldiRecognizer(self.model, self.sample_rate, vocab_json)
+                logger.info(f"Vosk vocabulary updated at runtime with {len(clean_vocab)} words.")
+            else:
+                self.recognizer = KaldiRecognizer(self.model, self.sample_rate)
+        except Exception as e:
+            logger.error(f"Failed to update Vosk vocabulary: {e}")
 
     def send_status_udp(self, status_msg: str):
         """Sends a response status string over UDP back to the ESP32."""

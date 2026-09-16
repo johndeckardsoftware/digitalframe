@@ -17,8 +17,7 @@ logger = logging.getLogger(__name__)
 
 class VoiceAssistant:
     def __init__(self, digitalframe, config_path):
-        logger.setLevel(Config.get("window.log_level", logging.INFO))
-        logger.setLevel(logging.DEBUG)
+        #logger.setLevel(logging.DEBUG)
         self.df = digitalframe
         self.config_path = config_path
         self.verbosity = Config.get("window.log_level", logging.INFO)
