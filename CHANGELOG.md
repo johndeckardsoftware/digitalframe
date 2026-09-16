@@ -1,3 +1,4 @@
+* Improved Search Tag and added Search Visual Content (johndeckardsoftware, 2026-09-16)
 * Refactoring resource folder (johndeckardsoftware, 2026-08-31)
 * Added integration with Local Offline Speech Recognition (Vosk + ESP32-S3 / UDP Node) (johndeckardsoftware, 2026-08-31)
 * Added integration with Alexa (johndeckardsoftware, 2026-08-10)
