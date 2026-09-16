@@ -28,6 +28,8 @@ class Histogram:
         self.k_shade_factor = Config.get('items.types.image.matte.sfactor', -0.3)
         self.k_complementary = Config.get('items.types.image.matte.complementary', False)
         self.k_col = [Color(0,0,0,255), Color(255,255,255,255), Color(128,128,128,255)]
+        self.info = None
+
         self.process(image)
 
     def process(self, image):
@@ -40,8 +42,8 @@ class Histogram:
 
         if self.matte_enabled:
             if self.dominant_color:
-                result = self.detect_dominant_tint(image2, *self.dominant_filter)
-                c = result['dominant_rgb']
+                self.info = self.detect_dominant_tint(image2, *self.dominant_filter)
+                c = self.info['dominant_rgb']
                 self.k_col = [Color(int(c[0]), int(c[1]), int(c[2]), 255)]
             elif self.k_means:
                 self.k_col = self.get_k_means(image2, k=self.k_num, iterations=self.k_iter)
@@ -161,7 +163,7 @@ class Histogram:
 
     def classify_tint(self, a: float, b: float, threshold: float = 3.0) -> str:
         """Classifies the chromatic cast based on CIE a* (Green/Red) and b* (Blue/Yellow)."""
-        if abs(a) < threshold and abs(b) < threshold:
+        if abs(a) <= threshold and abs(b) <= threshold:
             return "Neutral / Balanced"
 
         labels = []
