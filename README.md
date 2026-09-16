@@ -33,6 +33,9 @@ Simple digital frame application developed in Python using [raylib](https://elec
 | menu.py | On Screen Menu. |
 | osk.py | On Screen Keyboad. |
 | mqtt.py | Integration with Home Assitant. |
+| csync.py | Rclone cloud folder synchronization runner. |
+| indexer.py | Background CLIP feature extraction and image search indexer. |
+| voice.py | Local & cloud voice assistant handler (Fauxmo, Alexa STT, Vosk UDP, Piper TTS). |
 | devices.py | Keyboard and Remote device handler. |
 | plugin_manger.py | Plugin Manager. |
 | plugin.py | Plugin Interface class. Define keyboard, update and draw method to interact with raylib main loop. |
