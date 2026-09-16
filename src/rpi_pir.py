@@ -5,7 +5,6 @@ logger = logging.getLogger(__name__)
 
 class PIRSensor():
     def __init__(self, controller):
-        logger.setLevel(Config.get("window.log_level", logging.INFO))
         #logger.setLevel(logging.DEBUG)
         self.df = controller
         self.pir_thread = threading.Thread(target=self.handle_pir_sensor)
