@@ -3,5 +3,4 @@ flask
 vosk
 piper-tts
 rapidfuzz
-num2words
-text2num
+

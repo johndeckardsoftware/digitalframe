@@ -17,8 +17,6 @@ from dftext import DrawTextTTLList, dftext, update_dftext_vars
 from devices import Devices
 from mqtt import MQTT
 from plugin_manager import PluginManager
-from voice import VoiceAssistant
-from indexer import ImageFeatureIndexer
 
 class DigitalFrame:
     def __init__(self, fullscreen=None):
@@ -171,6 +169,7 @@ class DigitalFrame:
         FolderWatch(self.items)
 
         if Config.get('indexer.enabled', False):
+            from indexer import ImageFeatureIndexer
             self.indexer = ImageFeatureIndexer(df_item_list=self.items)
 
         if plugins := Config.get('plugins', None):
@@ -209,9 +208,13 @@ class DigitalFrame:
         self.mqtt_init()
 
         # voice assistant
-        self.voice_assistant = VoiceAssistant(self, os.path.join(Config.RESOURCES_CONFIG, "fauxmo.json"))
-        self.voice_assistant.run()
-        self.devices.menu.va = self.voice_assistant
+        if (Config.get("voice.fauxmo.enabled", False) or
+            Config.get("voice.alexa.enabled", False) or
+            Config.get("voice.esp32s3.enabled", False)):
+                from voice import VoiceAssistant
+                self.voice_assistant = VoiceAssistant(self, os.path.join(Config.RESOURCES_CONFIG, "fauxmo.json"))
+                self.voice_assistant.run()
+                self.devices.menu.va = self.voice_assistant
 
         set_target_fps(clock.fps)
         while not window_should_close() and self.keep_looping:

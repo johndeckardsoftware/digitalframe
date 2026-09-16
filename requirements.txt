@@ -11,3 +11,6 @@ ffmpeg-python
 pillow
 pillow_heif
 monitorcontrol
+text2num
+num2words2
+

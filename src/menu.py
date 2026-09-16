@@ -18,6 +18,7 @@ class OnScreenMenu:
         # Style
         self.set_style_size(self.df.scale)
         # Menus state
+        self.conf = Config #trick for config autogeneration
         self.lang = Config.get("voice.lang", "en")
         self.menus = self.load_menus()
         self.current = "menu"
@@ -75,7 +76,7 @@ class OnScreenMenu:
 
     # create a generic menu to choose from a list
     def create_list(self, values, f=None, back="menu"):
-        items = Config.get(values, []) if isinstance(values, str) else values
+        items = self.conf.get(values, []) if isinstance(values, str) else values
         lmo = []
         for item in items:
             lmo.append({"t": item, "f": f"self.set_list(self.selected, '{f}')"})
@@ -239,6 +240,12 @@ class OnScreenMenu:
         except Exception as e:
             logger.error(f"{e}")
 
+    def try_eval(self, func):
+        try:
+            return eval(func)
+        except:
+            return func
+
     def draw(self):
         # Draw a semi-transparent background overlay
         draw_rectangle(0, 0, get_screen_width(), get_screen_height(), fade(BLACK, 0.5))
@@ -255,8 +262,8 @@ class OnScreenMenu:
         # Draw Options
         for i, option in enumerate(self.options):
             spinbox = 'e' in option
-            if spinbox: text = eval(option['e'])
-            elif 'g' in option: text = eval(option['g'])
+            if spinbox: text = self.try_eval(option['e'])
+            elif 'g' in option: text = self.try_eval(option['g'])
             else: text = option['t']
             color = LIGHTGRAY
             if i == self.selected:
