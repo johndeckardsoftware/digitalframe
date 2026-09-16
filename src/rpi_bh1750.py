@@ -26,7 +26,6 @@ class BH1750():
     # addr=0x5c if addr pin pulled high
     #def __init__(self, bus, addr=0x23):
     def __init__(self, controller):
-        logger.setLevel(Config.get("window.log_level", logging.INFO))
         #log.setLevel(logging.DEBUG)
         self.df = controller
         self.addr = Config.get('bh1750.addr', 0x23)
