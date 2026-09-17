@@ -123,7 +123,7 @@ class DFItemVideo:
             unload_image(image)
 
             # background
-            texture_name = Config.get('items.types.image.matte.texture', "mat_texture2i.jpg")
+            texture_name = Config.get('items.types.image.matte.texture', "canvas.jpg")
             texture_file = os.path.join(Config.RESOURCES_MATTE, texture_name)
             image = load_image(texture_file)
             image_resize(image, self.df.width, self.df.height)
