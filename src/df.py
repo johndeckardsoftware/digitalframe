@@ -176,8 +176,8 @@ class DigitalFrame:
             self.plugins = PluginManager(self, plugins)
             self.devices.plugins = self.plugins
 
-        if self.fullscreen: set_window_state(ConfigFlags.FLAG_WINDOW_UNDECORATED|ConfigFlags.FLAG_WINDOW_TOPMOST)
-        else: set_window_state(ConfigFlags.FLAG_WINDOW_RESIZABLE)
+        if self.fullscreen: set_config_flags(ConfigFlags.FLAG_WINDOW_UNDECORATED|ConfigFlags.FLAG_WINDOW_TOPMOST)
+        else: set_config_flags(ConfigFlags.FLAG_WINDOW_RESIZABLE)
         init_window(self.width, self.height, "DigitalFrame v3.0")
         if self.fullscreen: disable_cursor()
         self.monitor = get_current_monitor()
