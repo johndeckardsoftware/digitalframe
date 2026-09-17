@@ -53,18 +53,22 @@ class Devices:
         self.text_pause = None
         self.cur_border = 0
         self.borders = Config.get('items.types.image.borders', [
-            {"file": "border01t.png", "opacity": 200, "thick": 6},
-            {"file": "border02t.png", "opacity": 200, "thick": 6},
-            {"file": "border03t.png", "opacity": 255, "thick": 16},])
+            {"file": "emboss.png", "opacity": 200, "thick": 6},
+            {"file": "emboss-shadow.png", "opacity": 200, "thick": 6},
+            {"file": "polaroid.png", "opacity": 255, "thick": 14},])
         self.cur_matte = 0
         self.mattes = Config.get('items.types.image.mattes', [
-            {"texture": "mat_texture1i.jpg", "opacity": 16, "type": 0},
-            {"texture": "mat_texture3i.jpg", "opacity": 16, "type": 1},
-            {"texture": "mat_texture4i.jpg", "opacity": 16, "type": 2},
-            {"texture": "mat_texture5i.jpg", "opacity": 16, "type": 3},
-            {"texture": "mat_texture6i.jpg", "opacity": 16, "type": 4},
-            {"texture": "mat_texture7.jpg",  "opacity": 16, "type": 9}, ]
-            )
+            {"texture": "canvas.jpg", "opacity": 16, "type": 0},
+            {"texture": "canvas-dark.jpg", "opacity": 16, "type": 0},
+            {"texture": "burlap-dark.jpg", "opacity": 16, "type": 0},
+            {"texture": "cracks-dark.jpg", "opacity": 16, "type": 1},
+            {"texture": "wood-bw-dark.jpg", "opacity": 16, "type": 2},
+            {"texture": "dry-soil-dark.jpg", "opacity": 16, "type": 3},
+            {"texture": "peeling-paint-dark.jpg", "opacity": 16, "type": 4},
+            {"texture": "wood.jpg", "opacity": 16, "type": 9},
+            {"texture": "wood-white.jpg", "opacity": 16, "type": 9}, ]
+        )
+        self.mattes_help = Config.get('items.types.image.matte.help', "0=image dominant color, 1=fixed color ('items.types.image.matte.color'), 2=perlin noise with dominat color, 3=gradient ('items.types.image.matte.start_color', 'items.types.image.matte.end_color', 4=gradient of dominat color, 9=matte original color" )
 
         self.actual_dir, self.dir_list = self.df.items.get_folders()
         self.dir_list_index = 0
@@ -303,10 +307,16 @@ class Devices:
         self.show3(df.items.subfolder)
         if df.item: df.item.skip()
 
+    def get_border_file(self):
+        return Config.get('items.types.image.border.file', "emboss-shadow.png")
+    
     def set_border(self, index):
         for k, v in self.borders[index].items():
             Config.set(f'items.types.image.border.{k}', v)
         self.show3(f"border: {self.borders[index]}", ttl=2)
+
+    def get_matte_texture(self):
+        return Config.get('items.types.image.matte.texture', "canvas.jpg")
 
     def set_matte(self, index):
         for k, v in self.mattes[index].items():
