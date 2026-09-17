@@ -393,11 +393,14 @@ motion={self.motion}, {self.debug}"
 
     def on_platform_set(self):
         if self.platform == "windows":
-            self.hdmi_power = 3
+            if self.hdmi_power != -1:
+                self.hdmi_power = 3
         elif is_raspberry_pi():
-            self.hdmi_power = 2
+            if self.hdmi_power != -1:
+                self.hdmi_power = 2
         else:
-            self.hdmi_power = 4
+            if self.hdmi_power != -1:
+                self.hdmi_power = 4
 
     def load_icon(self):
         icon = load_image(os.path.join(Config.RESOURCES_ICON, "icon.png"))
