@@ -1,6 +1,9 @@
 
 **Digitalframe**
 
+> ⚠️ **Project Status: Active Work in Progress (WIP)**  
+> This project is under active development. APIs, configuration formats, and key bindings may change frequently. Feedback and contributions are welcome!
+
 Simple digital frame application developed in Python using [raylib](https://electronstudio.github.io/raylib-python-cffi/README.html#quickstart). This project is designed to run on homemade digitalframe built around a **Raspberry Pi4** and 4k monitor. The [www.thedigitalpictureframe.com](https://www.thedigitalpictureframe.com/category/build-your-own/) is a good starting point if you want to build your digitalframe. The application runs on both **Windows** and **Linux** (naturally, aside from Raspberry-specific details), which opens up the possibility of using hardware other than the Raspberry. The application can be controlled with a simple wireless keyboard, a Bluetooth remote control, home automation systems such as 'Home Assistant' or [voice assistants](voice.md) . The focus is on the photographic component, the video and 3D parts are just my attempt to delve deeper into the 3D features of the raylib library. 
 
 ## **🚀 Key Features**
@@ -49,7 +52,7 @@ Simple digital frame application developed in Python using [raylib](https://elec
 
 ### **Software**
 
-* Python 3.9+  
+* Python 3.10+  
 * Dependencies: raylib, watchdog, psutil, paho-mqtt, exifread, bluedot, evdev, opencv-python, pygltflib, schedule, ffmpeg-python (require ffmpeg install), pillow, pillow_heif, monitorcontrol
 
 ## **🔧 Installation & Setup**
