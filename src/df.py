@@ -169,8 +169,12 @@ class DigitalFrame:
         FolderWatch(self.items)
 
         if Config.get('indexer.enabled', False):
-            from indexer import ImageFeatureIndexer
-            self.indexer = ImageFeatureIndexer(df_item_list=self.items)
+            try:
+                from indexer import ImageFeatureIndexer
+                self.indexer = ImageFeatureIndexer(df_item_list=self.items)
+            except Exception as e:
+                self.logger.fatal("To enable Indexer run 'pip install -r require_raspi_torch.txt'")
+                return 130
 
         if plugins := Config.get('plugins', None):
             self.plugins = PluginManager(self, plugins)
@@ -210,11 +214,16 @@ class DigitalFrame:
         # voice assistant
         if (Config.get("voice.fauxmo.enabled", False) or
             Config.get("voice.alexa.enabled", False) or
-            Config.get("voice.esp32s3.enabled", False)):
+            Config.get("voice.esp32s3.enabled", False)
+        ):
+            try:
                 from voice import VoiceAssistant
                 self.voice_assistant = VoiceAssistant(self, os.path.join(Config.RESOURCES_CONFIG, "fauxmo.json"))
                 self.voice_assistant.run()
                 self.devices.menu.va = self.voice_assistant
+            except Exception as e:
+                self.logger.fatal("To enable Voice see Voice.md in doc")
+                return 131
 
         set_target_fps(clock.fps)
         while not window_should_close() and self.keep_looping:
