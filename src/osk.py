@@ -23,6 +23,8 @@ class OnScreenKeyboard:
         self.cursor = 0
         self.typed_text = ""
         self.is_shift = False
+        # real kb
+        self.is_real = False
         # style
         self.set_style_size(self.devices.df.scale)
 
@@ -38,7 +40,7 @@ class OnScreenKeyboard:
             clean_text = text.strip()
             # 1. Resolve phonetic map first, fallback to raw input
             target = self.phonetic_map.get(clean_text, clean_text)
-            
+
             # 2. Check if the target is an action key (e.g., "BACK", "SPACE")
             if target in ["BACK", "SPACE", "ENTER", "LEFT", "RIGHT", "SHIFT"]:
                 self._handle_input(target)
@@ -70,9 +72,11 @@ class OnScreenKeyboard:
         if key == KeyboardKey.KEY_BACK or key == KeyboardKey.KEY_END:
             return False
 
-        if key == KeyboardKey.KEY_BACKSPACE:
-            self.typed_text = self.typed_text[:-1]
-            return True
+        if key == KeyboardKey.KEY_F12:
+            self.is_real = not self.is_real
+
+        if self.is_real:
+            return self._handle_real_input(key)
 
         if key == KeyboardKey.KEY_UP:
             self.row = (self.row - 1) % len(self.layout)
@@ -116,8 +120,27 @@ class OnScreenKeyboard:
             self.is_shift = not self.is_shift
             self.layout = self.layouts['shift'] if self.is_shift else self.layouts['base']
         else:
-            #char = key.upper() if self.is_shift else key.lower()
             self._insert_char(key)
+        return True
+
+    def _handle_real_input(self, key):
+        if key == KeyboardKey.KEY_BACKSPACE:
+            self.typed_text = self.typed_text[:self.cursor - 1] + self.typed_text[self.cursor:]
+            self.cursor -= 1
+        elif key == KeyboardKey.KEY_LEFT:
+            if self.cursor > 0:
+                self.cursor -= 1
+        elif key == KeyboardKey.KEY_RIGHT:
+            if self.cursor < len(self.typed_text):
+                self.cursor += 1
+        elif key == KeyboardKey.KEY_ENTER:
+            return False
+        else:
+            char_key = get_char_pressed()
+            while char_key > 0:
+                if (char_key >= 32) and (char_key <= 125):
+                    self._insert_char(chr(char_key))
+                char_key = get_char_pressed()
         return True
 
     def _insert_char(self, char):
@@ -155,9 +178,13 @@ class OnScreenKeyboard:
 
                 y_draw = self.pos_y + (r * (self.key_size + self.spacing))
 
-                # Colors
-                back_color = DARKBLUE if not is_selected else GOLD
-                text_color = WHITE if not is_selected else BLACK
+                # Colors: Dim keyboard buttons slightly when physical mode is enabled
+                if self.is_real:
+                    back_color = DARKGRAY
+                    text_color = LIGHTGRAY
+                else:
+                    back_color = DARKBLUE if not is_selected else GOLD
+                    text_color = WHITE if not is_selected else BLACK
 
                 # Draw Key Body
                 draw_rectangle(x_draw, y_draw, width, self.key_size, back_color)
