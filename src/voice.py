@@ -6,7 +6,7 @@ import threading
 
 from rapidfuzz import fuzz, process
 from num2words2 import num2words
-from text_to_num import text2num 
+#from text_to_num import text2num 
 from assistants.fauxmo.fauxmo import main as fauxmo_main
 from assistants.alexa.speech2text import AlexaSpeechBackend
 from assistants.esp32s3.myalexa import VoskSpeechBackend, PiperSpeechEngine
