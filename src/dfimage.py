@@ -58,14 +58,14 @@ class DFItemImage:
         self.ttl = value
 
     def set_border(self, width, height):
-        self.border_name = Config.get('items.types.image.border.file', "border02t.png")
+        self.border_name = Config.get('items.types.image.border.file', "emboss-shadow.png")
         self.border_file = os.path.join(Config.RESOURCES_BORDER, self.border_name)
         if not os.path.exists(self.border_file):
             return None, 0, 0, 0
 
         scale = width / self.width
 
-        border_thick = Config.get('items.types.image.border.thick', 8)
+        border_thick = Config.get('items.types.image.border.thick', 6)
 
         self.border_thick = int(border_thick * scale)
         self.border_width = width + (self.border_thick * 2)
@@ -78,7 +78,7 @@ class DFItemImage:
 
     def set_matte(self):
         df = self.df
-        self.texture_name = Config.get('items.types.image.matte.texture', "mat_texture2i.jpg")
+        self.texture_name = Config.get('items.types.image.matte.texture', "canvas.jpg")
         self.texture_file = os.path.join(Config.RESOURCES_MATTE, self.texture_name)
         matte_type = Config.get('items.types.image.matte.type', 0)
         if matte_type == 0:         # color from image
