@@ -1,5 +1,5 @@
 
-**Digitalframe**
+## **Digitalframe**
 
 > ⚠️ **Project Status: Active Work in Progress (WIP)**  
 > This project is under active development. APIs, configuration formats, and key bindings may change frequently. Feedback and contributions are welcome!
