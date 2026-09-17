@@ -97,6 +97,8 @@ class SpeechToTextIntentHandler(AbstractRequestHandler):
 
 The **Vosk UDP** integration turns an ESP32-S3 board (such as the Waveshare ESP32-S3-AUDIO Board) or any microcontroller equipped with an I2S microphone into a zero-cloud voice satellite node. The ESP32 streams raw PCM audio over UDP directly to a local Python socket server running the Kaldi-based [**Vosk STT**](https://alphacephei.com/vosk/) engine.
 
+From this [**page**](https://alphacephei.com/vosk/models) download the small model for your language and unzip it in 'src/resources/vosk'. See also 'Enablement in `config.json`'
+
 ### Key Characteristics
 
 * **Network Protocol:** Direct UDP audio datagram stream (PCM 16kHz, 16-bit Mono) from hardware to host; UDP status feedback loop sent back to the microcontroller.
@@ -119,7 +121,7 @@ self.vosk_server = VoskSpeechBackend(
     udp_port=5005,
     esp32_ip="192.168.10.45",
     esp32_port=5005,
-    model_path="models/vosk-model-small-it-0.22",
+    model_path="vosk-model-small-it-0.22",
     vocabulary=self.extract_menu_vocabulary(),
     on_speech_callback=self.on_speech_received
 )
