@@ -72,7 +72,7 @@ class OnScreenKeyboard:
         if key == KeyboardKey.KEY_BACK or key == KeyboardKey.KEY_END:
             return False
 
-        if key == KeyboardKey.KEY_F12:
+        if key == KeyboardKey.KEY_F1:
             self.is_real = not self.is_real
 
         if self.is_real:
