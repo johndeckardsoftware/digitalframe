@@ -53,6 +53,7 @@ class Devices:
         self.text_pause = None
         self.cur_border = 0
         self.borders = Config.get('items.types.image.borders', [
+            {"file": "none", "opacity": 0, "thick": 0},
             {"file": "emboss.png", "opacity": 200, "thick": 6},
             {"file": "emboss-shadow.png", "opacity": 200, "thick": 6},
             {"file": "polaroid.png", "opacity": 255, "thick": 14},])
