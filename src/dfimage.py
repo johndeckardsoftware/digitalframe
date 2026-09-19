@@ -57,24 +57,144 @@ class DFItemImage:
     def set_ttl(self, value):
         self.ttl = value
 
+    def create_border(self, width, height, border):
+        scale = width / self.width
+        border_thick = int(border.get('thick', 8) * scale)
+        bevel_width = int(border.get('bevel_width', 7) * scale)
+        inner_offset = int(border.get('inner_offset', 0) * scale)
+        outer_offset = int(border.get('outer_offset', 0) * scale)
+        mat_width = int(border.get('mat_width', 8) * scale)
+        mat_color = border.get('mat_color', (60, 60, 60, 255))
+        border_color = border.get('color', (60, 60, 60, 255))
+        shadow_offset = int(border.get('shadow_offset', 0) * scale)
+        shadow_blur = int(border.get('shadow_blur', 0) * scale)
+
+        total_mat_extra = mat_width + inner_offset
+        total_border = border_thick + total_mat_extra
+
+        canvas_w = width + (total_border + outer_offset + shadow_offset) * 2
+        canvas_h = height + (total_border + outer_offset + shadow_offset) * 2
+
+        # 1. Base transparent image canvas
+        canvas = gen_image_color(canvas_w, canvas_h, (0, 0, 0, 0))
+
+        shadow_rect = Rectangle(
+            outer_offset + shadow_offset,
+            outer_offset + shadow_offset,
+            canvas_w - (outer_offset * 2) - shadow_offset,
+            canvas_h - (outer_offset * 2) - shadow_offset
+        )
+
+        frame_rect = Rectangle(
+            outer_offset,
+            outer_offset,
+            canvas_w - (outer_offset * 2) - (shadow_offset * 2),
+            canvas_h - (outer_offset * 2) - (shadow_offset * 2)
+        )
+
+        # 2. Draw Soft Outer Drop Shadow
+        for i in range(shadow_blur, 0, -1):
+            alpha = int(80 * (1.0 - (i / shadow_blur)))
+            blur_rect = Rectangle(
+                shadow_rect.x - i,
+                shadow_rect.y - i,
+                shadow_rect.width + (i * 2),
+                shadow_rect.height + (i * 2)
+            )
+            image_draw_rectangle_rec(canvas, blur_rect, (0, 0, 0, alpha))
+
+        # 3. Draw Outer Frame Body
+        image_draw_rectangle_rec(canvas, frame_rect, border_color)
+
+        # 4. Draw Realistic Concentric Bevel Lines (1px thick, step inward by 1px / 2px overall size)
+        base_fx = int(frame_rect.x)
+        base_fy = int(frame_rect.y)
+        base_fw = int(frame_rect.width)
+        base_fh = int(frame_rect.height)
+
+        for i in range(bevel_width):
+            # Step inward by 1px on left/top, reducing width/height by 2px each step
+            fx = base_fx + i
+            fy = base_fy + i
+            fw = base_fw - (i * 2)
+            fh = base_fh - (i * 2)
+
+            if fw <= 0 or fh <= 0:
+                break
+
+            # Fade intensity from outer edge (stronger) to inner bevel edge (softer)
+            fade_factor = 1.0 - (i / bevel_width)
+            highlight_color = color_alpha(WHITE, 0.50 * fade_factor)
+            shadow_color = color_alpha(BLACK, 0.50 * fade_factor)
+
+            # Top 1px Line (Highlight)
+            image_draw_rectangle_rec(canvas, Rectangle(fx, fy, fw, 1), highlight_color)
+
+            # Left 1px Line (Highlight)
+            image_draw_rectangle_rec(canvas, Rectangle(fx, fy, 1, fh), highlight_color)
+
+            # Bottom 1px Line (Shadow)
+            image_draw_rectangle_rec(canvas, Rectangle(fx, fy + fh - 1, fw, 1), shadow_color)
+
+            # Right 1px Line (Shadow)
+            image_draw_rectangle_rec(canvas, Rectangle(fx + fw - 1, fy, 1, fh), shadow_color)
+
+        # 5. Draw Optional Second Mat (Double Mat Reveal)
+        if mat_width > 0:
+            sec_mat_rect = Rectangle(
+                base_fx + border_thick,
+                base_fy + border_thick,
+                base_fw - (border_thick * 2),
+                base_fh - (border_thick * 2)
+            )
+            image_draw_rectangle_rec(canvas, sec_mat_rect, mat_color)
+
+        # 6. Punch Out Center Photo Aperture (Transparent cutout)
+        inner_cutout = Rectangle(
+            (canvas_w - width) // 2,
+            (canvas_h - height) // 2,
+            width,
+            height
+        )
+        image_draw_rectangle_rec(canvas, inner_cutout, (0, 0, 0, 0))
+
+        # 7. Draw Inner Bevel / Inner Shadow around inner aperture
+        if inner_offset > 0:
+            image_draw_rectangle_lines(
+                canvas,
+                inner_cutout,
+                inner_offset,
+                color_alpha(BLACK, 0.35)
+            )
+
+        return canvas
+
     def set_border(self, width, height):
-        self.border_name = Config.get('items.types.image.border.file', "emboss-shadow.png")
+        self.border = Config.get('items.types.image.border', {})
+        self.border_name = self.border.get('file', "emboss-shadow.png")
+        if self.border_name == "auto":
+            border_img = self.create_border(width, height, self.border)
+            self.border_width = border_img.width
+            self.border_height = border_img.height
+            self.border_thick = (border_img.width - width) // 2
+            self.border_opacity = self.border.get('opacity', 255)
+
+            return border_img, self.border_width, self.border_height, self.border_thick
+
         self.border_file = os.path.join(Config.RESOURCES_BORDER, self.border_name)
         if not os.path.exists(self.border_file):
             return None, 0, 0, 0
 
         scale = width / self.width
-
-        border_thick = Config.get('items.types.image.border.thick', 6)
-
+        border_thick = self.border.get('thick', 6)
         self.border_thick = int(border_thick * scale)
         self.border_width = width + (self.border_thick * 2)
         self.border_height = height + (self.border_thick * 2)
-        self.border_opacity = Config.get('items.types.image.border.opacity', 200)
+        self.border_opacity = self.border.get('opacity', 200)
 
-        border = load_image(self.border_file)
-        image_resize(border, self.border_width, self.border_height)
-        return border, self.border_width, self.border_height, self.border_thick
+        border_img = load_image(self.border_file)
+        image_resize(border_img, self.border_width, self.border_height)
+        return border_img, self.border_width, self.border_height, self.border_thick
 
     def set_matte(self):
         df = self.df
