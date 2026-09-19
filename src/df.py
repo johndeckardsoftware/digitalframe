@@ -17,6 +17,7 @@ from dftext import DrawTextTTLList, dftext, update_dftext_vars
 from devices import Devices
 from mqtt import MQTT
 from plugin_manager import PluginManager
+import signal
 
 class DigitalFrame:
     def __init__(self, fullscreen=None):
@@ -502,17 +503,26 @@ def main(args):
             logger.setLevel(log_level)
             if Config.get("window.hide_taskbar", True): set_autohide_and_notification(True)
             df = DigitalFrame(fullscreen=args.fullscreen)
+
+            def signal_handler(sig, frame):
+                logger.info(f"Received signal {sig}, stopping application...")
+                df.close(save_config=False)  # Set keep_looping = False to exit main_loop cleanly
+
+            # Register handlers for termination (systemctl stop) and interrupt (Ctrl+C)
+            signal.signal(signal.SIGTERM, signal_handler)
+            signal.signal(signal.SIGINT, signal_handler)
+
             ret = df.main_loop()
             if Config.get("window.hide_taskbar", True): set_autohide_and_notification(False)
-            return exit_app(ret)
+            return exit_app(df, ret)
         else:
             return 128
     except Exception as e:
         logger.error(traceback.format_exc())
         return 129
 
-def exit_app(ret):
-    if Config.get('window.run_mode', RunMode.XINIT):
+def exit_app(df, ret):
+    if df.run_mode == RunMode.XINIT:
         try:
             with open("runx.log", "w", encoding="utf-8") as f:
                 f.write(f"{ret}\n")

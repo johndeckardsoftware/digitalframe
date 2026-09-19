@@ -56,13 +56,16 @@ class Devices:
             {"file": "none", "opacity": 0, "thick": 0},
             {"file": "emboss.png", "opacity": 200, "thick": 6},
             {"file": "emboss-shadow.png", "opacity": 200, "thick": 6},
-            {"file": "polaroid.png", "opacity": 255, "thick": 14},])
+            {"file": "polaroid.png", "opacity": 255, "thick": 14},
+            {"file": "auto", "opacity": 200, "thick": 8, "bevel_width": 8,
+              "inner_offset": 0, "outer_offset": 0, "mat_width": 0, "mat_color": (60, 60, 60, 255),
+              "color": (240, 240, 235, 255), "shadow_offset": 0, "shadow_blur": 0},])
         self.cur_matte = 0
         self.mattes = Config.get('items.types.image.mattes', [
             {"texture": "canvas.jpg", "opacity": 16, "type": 0},
             {"texture": "canvas-dark.jpg", "opacity": 16, "type": 0},
-            {"texture": "burlap-dark.jpg", "opacity": 16, "type": 0},
-            {"texture": "cracks-dark.jpg", "opacity": 16, "type": 1},
+            {"texture": "burlap-dark.jpg", "opacity": 16, "type": 1},
+            {"texture": "cracks-dark.jpg", "opacity": 16, "type": 0},
             {"texture": "wood-bw-dark.jpg", "opacity": 16, "type": 2},
             {"texture": "dry-soil-dark.jpg", "opacity": 16, "type": 3},
             {"texture": "peeling-paint-dark.jpg", "opacity": 16, "type": 4},
@@ -310,7 +313,7 @@ class Devices:
 
     def get_border_file(self):
         return Config.get('items.types.image.border.file', "emboss-shadow.png")
-    
+
     def set_border(self, index):
         for k, v in self.borders[index].items():
             Config.set(f'items.types.image.border.{k}', v)
@@ -425,8 +428,10 @@ class BoxPutRemote():
         self.status = ""
         self.text_pause = None
         self.show = self.df.dttls.show4
-        self.boxput_thread = threading.Thread(target=self.handle_boxput)
-        self.boxput_thread.daemon = True
+
+        # Flag to control the background loop lifecycle
+        self.running = True
+        self.boxput_thread = threading.Thread(target=self.handle_boxput, daemon=True)
         self.boxput_thread.start()
 
     def get_mode(self):
@@ -434,8 +439,10 @@ class BoxPutRemote():
 
     def handle_boxput(self):
         import evdev
+        import select
+
         df = self.df
-        while True:
+        while self.running:
             self.boxput = None
             try:
                 devices = evdev.list_devices("/dev/input")
@@ -448,151 +455,128 @@ class BoxPutRemote():
                         break
 
                 if self.boxput:
-                    logger.debug(f"BoxPut event read loop started")
+                    logger.debug("BoxPut event read loop started")
                     self.status = "running"
-                    for event in self.boxput.read_loop():
-                        if event.type == evdev.ecodes.EV_KEY:
-                            key_event = evdev.categorize(event)
-                            #logger.debug(f"{key_event.keystate} {key_event.scancode} {key_event.keycode}")
-                            if key_event.keystate == key_event.key_down:
-                                logger.debug(f"key_down {evdev.ecodes.KEY[key_event.scancode]}")
-                                # set BoxPut control mode
-                                if key_event.scancode == evdev.ecodes.KEY_COMPOSE:
-                                    if self.mode == ControlMode.REMOTE:
-                                        #self.device.keyboard(self.key_kb_menu)  #already from keyboard
-                                        pass
-                                    else:
-                                        df.show_remote_help = not df.show_remote_help
-                                        set_window_focused()
+                    
+                    # Read loop using non-blocking select() to respect self.running
+                    while self.running and self.boxput:
+                        r, _, _ = select.select([self.boxput.fd], [], [], 0.5)
+                        if r:
+                            for event in self.boxput.read():
+                                if event.type == evdev.ecodes.EV_KEY:
+                                    key_event = evdev.categorize(event)
+                                    self._process_key_event(key_event, evdev, df)
 
-                                # change boxput mode
-                                elif key_event.scancode == evdev.ecodes.KEY_HOMEPAGE:
-                                    self.mode = ControlMode.get_next(self.mode)
-                                    self.show(f"mode: {self.mode.value}")
-                                    set_window_focused()
+                # Idle sleep checking running state periodically
+                sleep_counter = 0
+                while self.running and sleep_counter < self.wait_time:
+                    time.sleep(0.5)
+                    sleep_counter += 0.5
 
-                                # sleep / wakeup
-                                elif key_event.scancode == evdev.ecodes.KEY_SEARCH:
-                                    if df.motion_enabled:
-                                        self.show("sleep")
-                                        df.motion_enabled = False
-                                        df.hdmi_off_timeout = 0.0
-                                        df.display_set_off()
-                                    else:
-                                        df.hdmi_off_timeout = self.autosleep
-                                        df.motion_enabled = True
-                                        df.set_motion(88.8)
-                                        #df.display_set_on()
-                                        self.show("wakeup")
-
-                                # pause
-                                elif key_event.scancode == evdev.ecodes.KEY_SELECT:
-                                    if self.mode == ControlMode.REMOTE:
-                                        self.device.keyboard(KeyboardKey.KEY_ENTER)
-                                    elif self.mode == ControlMode.DIGITALFRAME:
-                                        df.paused = not df.paused
-                                        if df.paused:
-                                            self.text_pause = self.show("pause", ttl=sys.maxsize)
-                                        else:
-                                            df.dttls.remove(self.text_pause)
-                                    else:
-                                        self.show("set focus")
-                                        set_window_focused()
-
-                                # directory up
-                                elif key_event.scancode == evdev.ecodes.KEY_UP:
-                                    if self.mode == ControlMode.REMOTE:
-                                        #self.device.keyboard(KeyboardKey.KEY_UP) #already from keyboard
-                                        pass
-                                    else:
-                                        df.items.set_subfolder(self.dir_list[self.dir_list_index])
-                                        self.show(df.items.subfolder)
-                                        if df.item: df.item.skip()
-                                        self.dir_list_index += 1
-                                        if self.dir_list_index >= len(self.dir_list):
-                                            self.dir_list_index = 0
-
-                                # directory down
-                                elif key_event.scancode == evdev.ecodes.KEY_DOWN:
-                                    if self.mode == ControlMode.REMOTE:
-                                        #self.device.keyboard(KeyboardKey.KEY_DOWN) #already from keyboard
-                                        pass
-                                    else:
-                                        df.items.set_subfolder(self.dir_list[self.dir_list_index])
-                                        self.show(df.items.subfolder)
-                                        if df.item: df.item.skip()
-                                        self.dir_list_index -= 1
-                                        if self.dir_list_index < 0:
-                                            self.dir_list_index = len(self.dir_list) - 1
-
-                                # back
-                                elif key_event.scancode == evdev.ecodes.KEY_LEFT:
-                                    if self.mode == ControlMode.REMOTE:
-                                        #self.device.keyboard(KeyboardKey.KEY_LEFT) #already from keyboard
-                                        pass
-                                    else:
-                                        self.show("previous")
-                                        df.items.set_prev()
-                                        if df.item: df.item.skip()
-
-                                # next
-                                elif key_event.scancode == evdev.ecodes.KEY_RIGHT:
-                                    if self.mode == ControlMode.REMOTE:
-                                        #self.device.keyboard(KeyboardKey.KEY_RIGHT) #already from keyboard
-                                        pass
-                                    else:
-                                        self.show("next")
-                                        df.items.set_next()
-                                        if df.item: df.item.skip()
-
-                                # backspace
-                                elif key_event.scancode == evdev.ecodes.KEY_BACKSPACE:
-                                    self.device.keyboard(KeyboardKey.KEY_BACKSPACE)
-
-                                # unused
-                                elif key_event.scancode == evdev.ecodes.KEY_VOLUMEUP:
-                                    pass
-
-                                # unused
-                                elif key_event.scancode == evdev.ecodes.KEY_VOLUMEDOWN:
-                                    pass
-
-                                # unused
-                                elif key_event.scancode == evdev.ecodes.KEY_MUTE:
-                                    pass
-
-                                # key back
-                                elif key_event.scancode == evdev.ecodes.KEY_BACK:
-                                    self.device.keyboard(KeyboardKey.KEY_BACK)
-
-                            elif key_event.keystate == key_event.key_hold:
-                                if self.first_key_hold:
-                                    logger.info(f"key_hold {evdev.ecodes.KEY[key_event.scancode]}")
-                                self.first_key_hold = False
-                                # brightness up
-                                if key_event.scancode == evdev.ecodes.KEY_VOLUMEUP:
-                                    if self.mode == ControlMode.DIGITALFRAME:
-                                        self.set_digitalframe_brightness(10)
-                                    else:
-                                        self.set_monitor_brightness("+10")
-
-                                # brightness down
-                                elif key_event.scancode == evdev.ecodes.KEY_VOLUMEDOWN:
-                                    if self.mode == ControlMode.DIGITALFRAME:
-                                        self.set_digitalframe_brightness(-10)
-                                    else:
-                                        self.set_monitor_brightness("-10")
-
-                            elif key_event.keystate == key_event.key_up:
-                                logger.debug(f"key_up {evdev.ecodes.KEY[key_event.scancode]}")
-                                self.first_key_hold = True
-
-                time.sleep(self.wait_time)
-            except OSError as e0:
-                logger.debug(e0)
-                pass
+            except (OSError, IOError) as e0:
+                logger.debug(f"BoxPut device error or disconnected: {e0}")
+                if self.boxput:
+                    try:
+                        self.boxput.close()
+                    except Exception:
+                        pass
+                    self.boxput = None
+                time.sleep(1)
             except Exception as e1:
                 logger.exception(e1)
+                time.sleep(1)
+
+        logger.info("BoxPut thread loop exited cleanly.")
+
+    def _process_key_event(self, key_event, evdev, df):
+        """Extracted key event handling logic."""
+        if key_event.keystate == key_event.key_down:
+            logger.debug(f"key_down {evdev.ecodes.KEY[key_event.scancode]}")
+            if key_event.scancode == evdev.ecodes.KEY_COMPOSE:
+                if self.mode != ControlMode.REMOTE:
+                    df.show_remote_help = not df.show_remote_help
+                    set_window_focused()
+
+            elif key_event.scancode == evdev.ecodes.KEY_HOMEPAGE:
+                self.mode = ControlMode.get_next(self.mode)
+                self.show(f"mode: {self.mode.value}")
+                set_window_focused()
+
+            elif key_event.scancode == evdev.ecodes.KEY_SEARCH:
+                if df.motion_enabled:
+                    self.show("sleep")
+                    df.motion_enabled = False
+                    df.hdmi_off_timeout = 0.0
+                    df.display_set_off()
+                else:
+                    df.hdmi_off_timeout = self.autosleep
+                    df.motion_enabled = True
+                    df.set_motion(88.8)
+                    self.show("wakeup")
+
+            elif key_event.scancode == evdev.ecodes.KEY_SELECT:
+                if self.mode == ControlMode.REMOTE:
+                    self.device.keyboard(KeyboardKey.KEY_ENTER)
+                elif self.mode == ControlMode.DIGITALFRAME:
+                    df.paused = not df.paused
+                    if df.paused:
+                        self.text_pause = self.show("pause", ttl=sys.maxsize)
+                    else:
+                        df.dttls.remove(self.text_pause)
+                else:
+                    self.show("set focus")
+                    set_window_focused()
+
+            elif key_event.scancode == evdev.ecodes.KEY_UP:
+                if self.mode != ControlMode.REMOTE:
+                    df.items.set_subfolder(self.dir_list[self.dir_list_index])
+                    self.show(df.items.subfolder)
+                    if df.item: df.item.skip()
+                    self.dir_list_index = (self.dir_list_index + 1) % len(self.dir_list)
+
+            elif key_event.scancode == evdev.ecodes.KEY_DOWN:
+                if self.mode != ControlMode.REMOTE:
+                    df.items.set_subfolder(self.dir_list[self.dir_list_index])
+                    self.show(df.items.subfolder)
+                    if df.item: df.item.skip()
+                    self.dir_list_index = (self.dir_list_index - 1) % len(self.dir_list)
+
+            elif key_event.scancode == evdev.ecodes.KEY_LEFT:
+                if self.mode != ControlMode.REMOTE:
+                    self.show("previous")
+                    df.items.set_prev()
+                    if df.item: df.item.skip()
+
+            elif key_event.scancode == evdev.ecodes.KEY_RIGHT:
+                if self.mode != ControlMode.REMOTE:
+                    self.show("next")
+                    df.items.set_next()
+                    if df.item: df.item.skip()
+
+            elif key_event.scancode == evdev.ecodes.KEY_BACKSPACE:
+                self.device.keyboard(KeyboardKey.KEY_BACKSPACE)
+
+            elif key_event.scancode == evdev.ecodes.KEY_BACK:
+                self.device.keyboard(KeyboardKey.KEY_BACK)
+
+        elif key_event.keystate == key_event.key_hold:
+            if self.first_key_hold:
+                logger.info(f"key_hold {evdev.ecodes.KEY[key_event.scancode]}")
+            self.first_key_hold = False
+            if key_event.scancode == evdev.ecodes.KEY_VOLUMEUP:
+                if self.mode == ControlMode.DIGITALFRAME:
+                    self.set_digitalframe_brightness(10)
+                else:
+                    self.set_monitor_brightness("+10")
+            elif key_event.scancode == evdev.ecodes.KEY_VOLUMEDOWN:
+                if self.mode == ControlMode.DIGITALFRAME:
+                    self.set_digitalframe_brightness(-10)
+                else:
+                    self.set_monitor_brightness("-10")
+
+        elif key_event.keystate == key_event.key_up:
+            logger.debug(f"key_up {evdev.ecodes.KEY[key_event.scancode]}")
+            self.first_key_hold = True
 
     def set_digitalframe_brightness(self, value):
         b = self.df.brightness
@@ -608,9 +592,13 @@ class BoxPutRemote():
 
     def stop(self):
         try:
+            self.running = False
             self.status = "stopped"
-            logger.info(f"BoxPut {self.status}")
-            #self.boxput_thread.join()
+            logger.info("Stopping BoxPut Remote...")
+            if self.boxput:
+                self.boxput.close()  # Unblocks select/read immediately
+            if self.boxput_thread.is_alive():
+                self.boxput_thread.join(timeout=1.0)
         except Exception as e:
             logger.error(e)
 
