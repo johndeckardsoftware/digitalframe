@@ -3,7 +3,7 @@
 
 ### Operating Mode Comparison
 
-For detailed setup instructions on each execution model, refer to **[raspi_run_with_desktop.md]((raspi_run_with_desktop.md))** and **[raspi_run_with_xinit.md]((raspi_run_with_xinit.md))**.
+For detailed setup instructions on each execution model, refer to **[raspi_run_with_desktop.md](raspi_run_with_desktop.md)** and **[raspi_run_with_xinit.md](raspi_run_with_xinit.md)**.
 
 
 For instructions on running digitalframe within a standard GUI environment, see raspi_run_with_desktop.md. For dedicated appliance deployment using xinit, see raspi_run_with_xinit.md.
