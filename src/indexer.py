@@ -54,7 +54,7 @@ class ImageFeatureIndexer:
         self.embeddings_cache = {}
 
         # Pre-load existing saved features from disk
-        self._load_cached_embeddings()
+        #self._load_cached_embeddings()
 
         # Start background indexing worker thread
         self.worker_thread = threading.Thread(target=self._indexing_worker, daemon=True)
@@ -92,6 +92,7 @@ class ImageFeatureIndexer:
                             feat = np.load(feat_path)
                             self.embeddings_cache[item.file] = feat
                             count += 1
+                            time.sleep(0.01)
                         except Exception as e:
                             logger.error(f"Failed loading cached feature for {item.file}: {e}")
         logger.info(f"{count} image features loaded from cache.")
@@ -127,6 +128,8 @@ class ImageFeatureIndexer:
     def _indexing_worker(self):
         """Background worker thread processing un-indexed images during scheduled window."""
         logger.info("ImageFeatureIndexer thread started.")
+        time.sleep(60)
+        self._load_cached_embeddings()
 
         while not self._stop_event.is_set():
             if (not self.last_load or self.last_load != self.df_item_list.last_load) and self._is_in_time_window():
@@ -167,15 +170,18 @@ class ImageFeatureIndexer:
         if labels and len(labels) > 0:
             self.labels = labels
             Config.set('indexer.labels', labels)
-            # save labels
-            recent = Config.get('indexer.recent_labels', [])
-            if not labels in recent:
-                recent.append(labels)
-                Config.set('indexer.recent_labels', recent)
-            return labels.split(",")
+            ret = labels.split(",") 
         else:
-            return None
-
+            self.labels = ""
+            self.selected = None
+            ret = None
+        # save labels
+        recent = Config.get('indexer.recent_labels', [])
+        if not labels in recent:
+            recent.append(labels)
+            Config.set('indexer.recent_labels', recent)
+        return ret
+    
     def get_labels(self):
         return self.labels
 
@@ -204,10 +210,10 @@ class ImageFeatureIndexer:
         :param query_labels: text queries (e.g. "cycling, beach, sunset")
         :return: Ranked list of matches with photo references and similarity  scores
         """
-        self._init_model()
-
         list_labels = self.set_labels(query_labels)
         if not list_labels: return None
+
+        self._init_model()
 
         threshold = self.threshold / 100
 
