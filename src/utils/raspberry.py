@@ -21,40 +21,44 @@ def get_os_version():
 
 # if enable: set autohide=true and notify_enable=false
 # else:  set autohide=false and notify_enable=true
+# !! fixed with the september 2026 trixe updates
 def set_autohide_and_notification(enable):
     if not is_raspberry_pi(): return
-    version = get_os_version()
-    if version == "12" or version == "13":
-        
-        if enable:
-            old_autohide = f"autohide=false"
-            old_notifiy_enable = f"notify_enable=true"
-            new_autohide = f"autohide=true"
-            new_notifiy_enable = f"notify_enable=false"
-        else:
-            old_autohide = f"autohide=true"
-            old_notifiy_enable = f"notify_enable=false"
-            new_autohide = f"autohide=false"
-            new_notifiy_enable = f"notify_enable=true"
+    try:
+        version = get_os_version()
+        if version == "12" or version == "13":
+            
+            if enable:
+                old_autohide = f"autohide=false"
+                old_notifiy_enable = f"notify_enable=true"
+                new_autohide = f"autohide=true"
+                new_notifiy_enable = f"notify_enable=false"
+            else:
+                old_autohide = f"autohide=true"
+                old_notifiy_enable = f"notify_enable=false"
+                new_autohide = f"autohide=false"
+                new_notifiy_enable = f"notify_enable=true"
 
-        home = Path.home()
-        wf_panel_pi = home / ".config/wf-panel-pi/wf-panel-pi.ini"
-        content = open(wf_panel_pi).read()
-        i = content.find("autohide=")
-        if i != -1:
-            new_content = content.replace(old_autohide, new_autohide)
-        else:
-            new_content = content + new_autohide + "\n"
+            home = Path.home()
+            wf_panel_pi = home / ".config/wf-panel-pi/wf-panel-pi.ini"
+            content = open(wf_panel_pi).read()
+            i = content.find("autohide=")
+            if i != -1:
+                new_content = content.replace(old_autohide, new_autohide)
+            else:
+                new_content = content + new_autohide + "\n"
 
-        i = content.find("notify_enable=")
-        if i != -1:
-            new_content = new_content.replace(old_notifiy_enable, new_notifiy_enable)
-        else:
-            new_content = new_content + new_notifiy_enable + "\n"
+            i = content.find("notify_enable=")
+            if i != -1:
+                new_content = new_content.replace(old_notifiy_enable, new_notifiy_enable)
+            else:
+                new_content = new_content + new_notifiy_enable + "\n"
 
-        if content != new_content:
-            with open(wf_panel_pi, 'w') as f:
-                f.write(new_content)
+            if content != new_content:
+                with open(wf_panel_pi, 'w') as f:
+                    f.write(new_content)
+    except Exception:
+        pass
 
 if __name__ == "__main__":
     set_autohide_and_notification(True)

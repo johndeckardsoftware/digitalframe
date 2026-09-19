@@ -16,7 +16,9 @@ def extract_mp3_from_video(file):
         filemp3 = file + ".mp3"
         input_file = ffmpeg.input(file)
         audio = input_file.audio
-        output = ffmpeg.output(audio, filemp3)
+        #output = ffmpeg.output(audio, filemp3)
+        # Pass -nostdin as a global arg to detach from TTY/stdin (xinit)
+        output = ffmpeg.output(audio, filemp3).global_args('-nostdin')
         _, err = ffmpeg.run(output, quiet=True, overwrite_output=True, capture_stdout=True, capture_stderr=True)
         return True, None, filemp3
     except ffmpeg.Error as e:

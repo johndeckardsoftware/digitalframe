@@ -3,6 +3,11 @@ import json, re
 import ast
 from pathlib import Path
 
+class RunMode:
+    DESKTOP = "desktop"     # Standard desktop session (X11/Wayland)
+    XINIT = "xinit"         # xinit / bare X server
+    DRM = "drm"             # Headless KMS/DRM (no X server)
+
 class ItemType:
     IMAGE = 0
     VIDEO = 1

@@ -5,9 +5,9 @@ import traceback
 from pyray import *
 # https://www.raylib.com/cheatsheet/cheatsheet.html
 import clock
-from config import Config, ItemType
+from config import Config, ItemType, RunMode
 from utils.folderwatch import FolderWatch
-from utils.display import hdmi_set_on, hdmi_set_off, hdmi_is_connected
+from utils.display import hdmi_set_on, hdmi_set_off, is_hdmi_connected
 from utils.lux2brightness import convert_lux_to_range, get_gauss_hour
 from utils.raspberry import is_raspberry_pi, set_autohide_and_notification
 from utils.image import resize_to_percentage
@@ -22,9 +22,10 @@ class DigitalFrame:
     def __init__(self, fullscreen=None):
         self.exit_code = 0
         self.this = self
-        self.platform = platform.system().lower()
+        self.platform = self.get_platform()
         self.logger = logging.getLogger(__name__)
         #self.logger.setLevel(logging.DEBUG)
+        self.run_mode = Config.get('window.run_mode', RunMode.DESKTOP)
         self.monitor = 0
         if fullscreen is None:
             self.fullscreen = Config.get('window.fullscreen', True)
@@ -53,8 +54,8 @@ class DigitalFrame:
 
         self.items = DFItemList(self, Config.get('items.path', ['/path/to/items']))
         # MyHome / Home Assistant control
-        self.hdmi_power = Config.get('window.hdmi_power', 2) # 3 for windows
-        self.hdmi_is_connected = hdmi_is_connected(self)
+        self.hdmi_power = Config.get('window.hdmi_power', 0)
+        self.hdmi_is_connected = is_hdmi_connected(self)
         self.hdmi_off_timeout = Config.get('window.hdmi_off_timeout', 0)
         self.image_ttl = Config.get('items.types.image.ttl', 10) # time to live in seconds
         self.hdmi_switch_off_time = time.time() + (self.hdmi_off_timeout * 60)
@@ -162,10 +163,10 @@ class DigitalFrame:
     def main_loop(self):
         self.exit_code = 0
 
-        set_trace_log_level(TraceLogLevel.LOG_WARNING)  #raylib
-        #set_trace_log_level(TraceLogLevel.LOG_DEBUG)  #raylib
+        # 0 ALL, 1 TRACE, 2 DEBUG, 3 INFO, 4 WARNING, 5 ERROR, 6 FATAL, 7, NONE
+        set_trace_log_level(Config.get('raylib.log_level', TraceLogLevel.LOG_WARNING))  #raylib
 
-        self.on_platform_set()
+        self.on_platform()
         FolderWatch(self.items)
 
         if Config.get('indexer.enabled', False):
@@ -362,8 +363,9 @@ class DigitalFrame:
     def display_set_on(self):
         self.display = True
         hdmi_set_on(self)
-        if self.platform != "windows": time.sleep(5)
-        set_window_focused()
+        if self.run_mode == RunMode.DESKTOP:
+            if self.platform != "windows": time.sleep(5)
+            set_window_focused()
         self.set_paused(False)
 
     def display_set_off(self):
@@ -400,16 +402,26 @@ motion={self.motion}, {self.debug}"
 
         draw_texture(self.help, (self.width - self.help.width) // 2, (self.height - self.help.height) // 2, (255, 255, 255, 255))
 
-    def on_platform_set(self):
+    def get_platform(self):
+        _os_ = platform.system().lower()
+        if _os_ == "linux":
+            if is_raspberry_pi():
+                _os_ == "raspi"
+        return _os_
+
+    def on_platform(self):
         if self.platform == "windows":
-            if self.hdmi_power != -1:
-                self.hdmi_power = 3
-        elif is_raspberry_pi():
-            if self.hdmi_power != -1:
-                self.hdmi_power = 2
+            #if self.hdmi_power != -1:
+            #    self.hdmi_power = 3
+            pass
+        elif self.platform == "raspi":
+            #if self.hdmi_power != -1:
+            #    self.hdmi_power = 2
+            pass
         else:
-            if self.hdmi_power != -1:
-                self.hdmi_power = 4
+            #if self.hdmi_power != -1:
+            #    self.hdmi_power = 4
+            pass
 
     def load_icon(self):
         icon = load_image(os.path.join(Config.RESOURCES_ICON, "icon.png"))
@@ -492,12 +504,21 @@ def main(args):
             df = DigitalFrame(fullscreen=args.fullscreen)
             ret = df.main_loop()
             if Config.get("window.hide_taskbar", True): set_autohide_and_notification(False)
-            return ret
+            return exit_app(ret)
         else:
             return 128
     except Exception as e:
         logger.error(traceback.format_exc())
         return 129
+
+def exit_app(ret):
+    if Config.get('window.run_mode', RunMode.XINIT):
+        try:
+            with open("runx.log", "w", encoding="utf-8") as f:
+                f.write(f"{ret}\n")
+        except Exception:
+            pass
+    return ret
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='digitalframe 3.0')
