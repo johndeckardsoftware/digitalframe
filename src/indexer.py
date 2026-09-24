@@ -45,7 +45,7 @@ class ImageFeatureIndexer:
         self.last_load = None
 
         # selection
-        self.labels = Config.get('indexer.labels', None)
+        self.labels = Config.get('indexer.labels', "")
         self.max_results = Config.get('indexer.max_results', 0)
         self.threshold = Config.get('indexer.threshold', 22)
         self.selected = None
