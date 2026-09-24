@@ -34,6 +34,10 @@ class OnScreenKeyboard:
         with open(os.path.join(Config.RESOURCES_MENU, layout), "r", encoding="UTF-8") as f:
             return json.load(f)
 
+    def set_typed_text(self, t):
+        self.typed_text = t
+        self.cursor = len(t)
+
     def set_typed_char_from_voice(self, text: str):
         """Converts spoken input into keyboard action or char insertion."""
         try:
@@ -109,7 +113,6 @@ class OnScreenKeyboard:
                 self.cursor += 1
         elif key == "BACK":
             if self.cursor > 0:
-                # Remove character BEFORE cursor
                 self.typed_text = self.typed_text[:self.cursor - 1] + self.typed_text[self.cursor:]
                 self.cursor -= 1
         elif key == "SPACE":
@@ -125,8 +128,9 @@ class OnScreenKeyboard:
 
     def _handle_real_input(self, key):
         if key == KeyboardKey.KEY_BACKSPACE:
-            self.typed_text = self.typed_text[:self.cursor - 1] + self.typed_text[self.cursor:]
-            self.cursor -= 1
+            if self.cursor > 0:
+                self.typed_text = self.typed_text[:self.cursor - 1] + self.typed_text[self.cursor:]
+                self.cursor -= 1
         elif key == KeyboardKey.KEY_LEFT:
             if self.cursor > 0:
                 self.cursor -= 1
