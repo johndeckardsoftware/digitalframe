@@ -375,7 +375,7 @@ class DFItemImage:
             exec(code)
         except Exception as e:
             self.df.logger.warning(f"{self.name=}, {self.tags=}, {code=}\n{e}")
-        dftext(self.tags2text, -2, 2, fs=-28, tint=self.tags_color, shadow=2)
+        dftext(self.tags2text, -2, 2, font=self.df.font, fs=-28*self.df.scale, tint=self.tags_color, shadow=2)
 
     def get_tag(self, tag):
         tv = self.tags.get(tag, None)
