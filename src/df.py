@@ -1,5 +1,6 @@
 import sys, os, time, datetime, logging, platform, json
 import argparse
+import threading
 import traceback
 # https://electronstudio.github.io/raylib-python-cffi/README.html
 from pyray import *
@@ -121,7 +122,12 @@ class DigitalFrame:
             self.height = Config.get('window.max_height', 2160)     # get_screen_height()
         else:
             self.width = get_screen_width()
+            Config.set('window.width', self.width)
             self.height = get_screen_height()
+            Config.set('window.height', self.height)
+            pos = get_window_position()
+            Config.set('window.x', pos.x)
+            Config.set('window.y', pos.y)
         self.ratio = round(self.width / self.height, 2)
         self.scale = (self.width / self.scale_ref_width)
         self.devices.menu.set_style_size(self.scale)
@@ -165,7 +171,7 @@ class DigitalFrame:
         self.exit_code = 0
 
         # 0 ALL, 1 TRACE, 2 DEBUG, 3 INFO, 4 WARNING, 5 ERROR, 6 FATAL, 7, NONE
-        set_trace_log_level(Config.get('raylib.log_level', TraceLogLevel.LOG_WARNING))  #raylib
+        set_trace_log_level(Config.get('raylib.log_level', 4))  #raylib
 
         self.on_platform()
         FolderWatch(self.items)
@@ -197,8 +203,8 @@ class DigitalFrame:
         self.load_icon()
 
         #self.font = load_font(os.path.join(Config.RESOURCES_FONT, Config.get('window.font', "LiberationMono-Regular.ttf")))
-        # manage all ansi charaters
-        codepoints_list = list(range(32, 256))
+        # manage all ansi charaters plus "▲" and "▼"
+        codepoints_list = [*range(32, 256), 9650, 9660]
         codepoints = ffi.new("int[]", codepoints_list)
         self.font = load_font_ex(
             os.path.join(Config.RESOURCES_FONT, Config.get('window.font', "LiberationMono-Regular.ttf")),
@@ -442,7 +448,14 @@ motion={self.motion}, {self.debug}"
             pos = get_window_position()
             Config.set('window.x', int(pos.x))
             Config.set('window.y', int(pos.y))
-            if self.sound_enabled: close_audio_device()
+            if self.sound_enabled:
+                #close_audio_device()
+                self.logger.info("Closing audio device...")
+                audio_thread = threading.Thread(target=close_audio_device, daemon=True)
+                audio_thread.start()
+                audio_thread.join(timeout=2.0)
+                if audio_thread.is_alive():
+                    self.logger.warning("close_audio_device() timed out - continuing cleanup.")
             close_window()
             if self.devices:
                 self.devices.stop()
@@ -480,7 +493,7 @@ motion={self.motion}, {self.debug}"
 
 def ask_item_path():
     while True:
-        path = input("Since this is the first time you're launching the app, enter the path to your media file:")
+        path = input("Since this is the first time you're launching the app, enter the path to your media file: ")
         if os.path.exists(path):
             break
         else:
