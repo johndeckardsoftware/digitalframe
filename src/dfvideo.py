@@ -190,7 +190,7 @@ class DFItemVideo:
 
         if self.ftt > self.ttl or self._skip:
             clock.pop_set_fps()
-            self.video.release()
+            self.video_close()
             self.video = None
             self._skip = False
             self.ftt = 0
