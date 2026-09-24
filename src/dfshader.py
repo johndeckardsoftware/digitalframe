@@ -167,7 +167,7 @@ class CRT(ShaderWrapper):
 
 def create_shader(self, name=None):
     if not name:
-        name = Config.get(f'shader.name', None)
+        name = Config.get('shader.name', None)
         if not name:
             name = "lightness"
             Config.set('shader.name', name)
