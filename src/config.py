@@ -136,6 +136,30 @@ class Config:
         color = Config.get(key, _default, c)
         return (color[0], color[1], color[2], color[3])
 
+    @staticmethod
+    def get_key_tree() -> dict[str, list[str]]:
+        """
+        Extracts a dictionary where each top-level key maps to a list
+        of all its nested sub-keys in dot-notation.
+        """
+        tree = {}
+
+        def _extract_subkeys(prefix, current_dict):
+            keys = []
+            for k, v in current_dict.items():
+                full_path = f"{prefix}.{k}" if prefix else k
+                keys.append(full_path)
+                if isinstance(v, dict):
+                    keys.extend(_extract_subkeys(full_path, v))
+            return keys
+
+        for root_key, val in Config.config.items():
+            if isinstance(val, dict):
+                tree[root_key] = _extract_subkeys("", val)
+            else:
+                tree[root_key] = []
+
+        return tree
 
 def analyze_config_calls(file_path, key_default, full_call):
     with open(file_path, 'rb') as f:

@@ -1,13 +1,55 @@
-import os, json, logging
+import os, json, logging, ast
 from pyray import *
 from text_to_num import text2num
 import clock
 from config import Config
+from config import config_setup # used menu_xx.json
 from osk import OnScreenKeyboard
 from dftext import dftext
 import utils.ddcutil as ddcutil # used in exec
 
 logger = logging.getLogger(__name__)
+
+MENU_DYNAMIC = "dynamic"
+
+class DynamicMenuState:
+    """Holds data for a single dynamic menu layer."""
+    def __init__(self, name: str):
+        self.name: str = name
+        self.list: list | None = None
+        self.dict: dict | None = None
+        self.entered: dict | None = None
+        self.help: str | None = None
+        self.ktree: dict[str, list[str]] | None = None
+
+class MenuDynamic:
+    """Manager class controlling all dynamic menu states and instances."""
+    def __init__(self):
+        self._instances: dict[str, DynamicMenuState] = {}
+        self.active_name: str = MENU_DYNAMIC
+        # Always create default dynamic instance
+        self.get_instance(MENU_DYNAMIC)
+
+    def get_instance(self, name: str) -> DynamicMenuState:
+        if name not in self._instances:
+            self._instances[name] = DynamicMenuState(name)
+        return self._instances[name]
+
+    @property
+    def current(self) -> DynamicMenuState:
+        """Returns the currently active dynamic menu state."""
+        return self.get_instance(self.active_name)
+
+    def set_active(self, name: str = MENU_DYNAMIC) -> DynamicMenuState:
+        self.active_name = name
+        return self.get_instance(name)
+
+    def set_current(self, name: str = MENU_DYNAMIC) -> DynamicMenuState:
+        if name in self._instances:
+            self.active_name = name
+            return True
+        else:
+            return False
 
 class OnScreenMenu:
     def __init__(self, digitalframe, devices):
@@ -24,8 +66,8 @@ class OnScreenMenu:
         self.current = "menu"
         self.options = self.menus['menu']
         self.selected = 0
-        self.number = 0
         self.option = self.set_option()
+        self.is_dynamic = False
         self.is_active = False
         self.in_action = False
         self.is_spinbox = False
@@ -33,6 +75,20 @@ class OnScreenMenu:
         self.osk = OnScreenKeyboard(self)
         self.is_osk = False
         self.in_osk = False
+        # voice assistant support
+        self.number = 0
+        self.config_ktree = Config.get_key_tree()
+        # menu dynamic
+        self.dynamic = MenuDynamic()
+        self.dynamic.current.list = None
+        self.dynamic.current.dict = None
+        self.dynamic.current.entered = None
+        self.dynamic.current.help = None
+        self.dynamic.current.ktree = None
+        # shortcut
+        self.show = self.df.dttls.show
+        self.show3 = self.df.dttls.show3
+        self.show4 = self.df.dttls.show4
 
     def set_style_size(self, scale):
         self.text_h = int(40 * scale)
@@ -74,26 +130,110 @@ class OnScreenMenu:
 
         return menus
 
-    # create a generic menu to choose from a list
-    def create_list(self, values, f=None, back="menu"):
-        items = self.conf.get(values, []) if isinstance(values, str) else values
+    # load a dynamic menu from a string array
+    def create_menu_from_list(self, values, default="", f=None, fm=None, back="menu", name="dynamic"):
+        self.dynamic.set_active(name)
+        self.dynamic.current.list = self.conf.get(values, []) if isinstance(values, str) else values
         lmo = []
-        for item in items:
-            lmo.append({"t": item, "f": f"self.set_list(self.selected, '{f}')"})
+        for item in self.dynamic.current.list:
+            option = {"t": f"{item}", "f": f"self.set_dynamic_text(self.selected, {f})"}
+            if fm: option['fm'] = fm
+            lmo.append(option)
+            if item == default:
+                self.dynamic.current.entered = option
         lmo.append({"t": "Back", "back": True, "m": back})
-        self.menus['list'] = lmo
-        self.menus['list_sel'] = 0
-        if not 'list_text' in self.menus:
-            self.menus['list_text'] = ""
-        #return self.menus['list_text']
+        self.menus[name] = lmo
+        self.menus[f"{name}_sel"] = 0
         return ""
 
-    def set_list(self, index, f=None):
-        self.menus['list_text'] = self.menus['list'][index]['t']
+    # load a dynamic menu from a dictionary
+    def create_menu_from_dict(self, values, default="", f=None, back="menu", conf_key=None, key=None, name="dynamic"):
+        self.dynamic.set_active(name)
+        self.dynamic.current.dict = self.conf.get(values, {}) if isinstance(values, str) else values
+        lmo = []
+        self.menus[f"{name}_help"] = ""
+        self.dynamic.current.help = None
+        for k, v in self.dynamic.current.dict.items():
+            if k == "help":
+                self.menus[f"{name}_help"] = v
+                self.dynamic.current.help = v
+            else:
+                option = {"g": self.get_dynamic_kv(k), "vk": True, "d": self.get_dynamic_v(k),
+                          "f": f"self.set_dynamic_kv('{k}', 'self.osk.typed_text', '{f}')"}
+                lmo.append(option)
+                if k == default:
+                    self.dynamic.current.entered = option
+        if conf_key:
+            lmo.append({"t": "Save", "f": f"self.save('{conf_key}', '{key}', self.dynamic.current.dict)"})
+        lmo.append({"t": "Back", "back": True, "m": back})
+        self.menus[name] = lmo
+        self.menus[f"{name}_sel"] = 0
+        return ""
+
+    def set_dynamic_text(self, index, f=None):
+        name = self.dynamic.current.name
+        self.dynamic.current.entered = self.menus[name][index]
+        self.menus[f"{name}_text"] = self.menus[name][index]['t']
         if f: exec(f)
 
-    def get_list(self):
-        return self.menus['list_text']
+    def get_dynamic_text(self):
+        return self.menus[f"{self.dynamic.current.name}_text"]
+
+    def get_dynamic_kv(self, k):
+        return "f'" + k + " (" + "{self.dynamic.current.dict[\"" + k + "\"]})'"
+
+    def get_dynamic_v(self, k):
+        return "f'{self.dynamic.current.dict[\"" + k + "\"]}'"
+
+    def set_dynamic_kv(self, k, fv, f):
+        v = self.try_eval(fv)
+        try:
+            v = ast.literal_eval(v)
+        except (ValueError, SyntaxError):
+            pass
+        self.dynamic.current.dict[k] = v
+        if f:
+            try:
+                exec(f)
+            except:
+                logger.error(f"{k=}, {fv=} {f=}")
+                return
+        self.dynamic.current.entered = self.menus[self.current][self.selected]
+
+    def save(self, conf_key, key, new_value):
+        cur_value = self.conf.get(conf_key, None)
+        if cur_value is not None:
+            if isinstance(cur_value, list):
+                if key and key != "None":
+                    found = False
+                    for i, item in enumerate(cur_value):
+                        # Match item by key identifier (e.g., item['file'] == id)
+                        if isinstance(item, dict) and item.get(key) == new_value.get(key):
+                            cur_value[i] = new_value  # Update element directly in list
+                            found = True
+                            break
+
+                    if found:
+                        Config.set(conf_key, cur_value)
+                        Config.save()  # Write back to config.json
+                    else:
+                        self.show3(f"{key=} not found", ttl=3)
+                else:
+                    Config.set(conf_key, next(iter(new_value.values())))
+                    Config.save()
+
+            elif isinstance(cur_value, dict):
+                Config.set(conf_key, new_value)
+                Config.save()
+            else:
+                # Handles int, float, str, bool
+                v = next(iter(new_value.values()))
+                try: v = ast.literal_eval(v)
+                except (ValueError, SyntaxError): pass
+                Config.set(conf_key, v)
+                Config.save()
+        else:
+            self.show3(f"{conf_key=} not found", ttl=3)
 
     def update(self, key):
         #logger.debug(f"{key=}")
@@ -140,21 +280,26 @@ class OnScreenMenu:
                 if self.is_osk:
                     self.in_osk = True
                     if 'd' in self.option:
-                        self.osk.typed_text = eval(self.option['d'])
+                        self.osk.set_typed_text(eval(self.option['d']))
                     return
 
                 self.in_action = True
                 if "f" in self.option:
                     exec(self.option['f'])
-                else:
+                elif "k" in self.option:
                     self.devices.send_keys(self.option['k'])
                 self.in_action = False
+
+                if menu := self.option.get('fm', None):
+                    self.set_menu(self.try_eval(menu))
+                    return
 
             elif key == KeyboardKey.KEY_BACK or key == KeyboardKey.KEY_END:
                 self.set_menu("menu")
 
     def set_menu(self, menu):
-        self.current = menu # TODO manage more levels
+        self.current = menu
+        self.is_dynamic = self.dynamic.set_current(menu)
         self.options = self.menus[menu]
         self.selected = self.menus[f"{menu}_sel"]
         self.option = self.set_option()
@@ -167,6 +312,9 @@ class OnScreenMenu:
         self.in_osk = False
         return option
 
+    #
+    # menu helper
+    #
     def on_off(self, value):
         return "on" if value else "off"
 
@@ -177,6 +325,73 @@ class OnScreenMenu:
         if self.va:
             self.va.piper_enabled = value if value else not  self.va.piper_enabled
             Config.set('voice.piper.enabled', self.va.piper_enabled)
+
+    def menu_tag(self):
+        current = self.df.items.get_filter()
+        self.create_menu_from_list("items.recent_filter", default=current, f="self.df.set_tags_filter(self.get_dynamic_text())", back="tag")
+        return MENU_DYNAMIC
+
+    def get_tag(self):
+        return self.df.items.get_filter()
+
+    def menu_labels(self):
+        if self.df.indexer:
+            current = self.df.indexer.get_labels()
+            self.create_menu_from_list("indexer.recent_labels", default=current, f="self.df.indexer.set_labels(self.get_dynamic_text())", back="indexer")
+            return MENU_DYNAMIC
+        else:
+            return "indexer"
+
+    def get_labels(self):
+        if self.df.indexer:
+            return self.df.indexer.get_labels()
+        else:
+            return "tag"
+
+    def menu_border(self):
+        key = "file"
+        current = Config.get('items.types.image.border', {})
+        self.create_menu_from_dict(current, default=current, back="menu", conf_key="items.types.image.borders", key=key)
+        return MENU_DYNAMIC
+
+    def menu_matte(self):
+        key = "texture"
+        current = Config.get('items.types.image.matte', {})
+        self.create_menu_from_dict(current, default=current, back="menu", conf_key="items.types.image.mattes", key=key)
+        return MENU_DYNAMIC
+
+    def menu_config_keys(self):
+        menu = "config_keys"
+        self.dynamic.set_active(menu)
+        keys = [k for k in self.config_ktree.keys()]
+        self.create_menu_from_list(keys, fm="self.menu_config_subkeys(self.get_dynamic_text())", back="debug", name=menu)
+        return menu
+
+    def menu_config_subkeys(self, key=None):
+        menu = "config_subkeys"
+        self.dynamic.set_active(menu)
+        if key is None: key = "window"
+        subkeys = self.config_ktree.get(key, [])
+        self.create_menu_from_list(subkeys, fm="self.menu_config_values(self.get_dynamic_text())", back="config_keys", name=menu)
+        return menu
+
+    def menu_config_values(self, key=None):
+        menu = "config_values"
+        self.dynamic.set_active(menu)
+        if key is not None:
+            conf_key = f"{self.menus['config_keys_text']}.{key}"
+            values = Config.get(conf_key, [])
+            if isinstance(values, list):
+                #self.create_menu_from_list(values, back="config_subkeys", name=menu)
+                temp_dict = {key: f"{values}"}
+                self.create_menu_from_dict(temp_dict, conf_key=conf_key, back="config_subkeys", name=menu)
+            elif isinstance(values, dict):
+                self.create_menu_from_dict(values, conf_key=conf_key, back="config_subkeys", name=menu)
+            else:
+                temp_dict = {key: values}
+                self.create_menu_from_dict(temp_dict, conf_key=conf_key, back="config_subkeys", name=menu)
+            return menu
+        return "config_keys"
 
     #
     # voice assistant support functions
@@ -192,12 +407,12 @@ class OnScreenMenu:
         if option:
             self.option = option
             if "d" in option:
-                self.osk.typed_text = eval(option['d'])
+                self.osk.set_typed_text(eval(option['d']))
         else:
             self.option = None
         self.is_osk = True
         self.in_osk = True
-        logger.info(f"{self.is_osk=} {self.in_osk=} {self.osk.typed_text=}")
+        logger.debug(f"{self.is_osk=} {self.in_osk=} {self.osk.typed_text=}")
 
     def osk_hide(self):
         if self.option:
@@ -206,8 +421,7 @@ class OnScreenMenu:
         self.in_osk = False
 
     def osk_clear(self):
-        self.osk.typed_text = ""
-        self.osk.cursor = 0
+        self.osk.set_typed_text("")
 
     def osk_backspace(self):
         osk = self.osk
@@ -243,38 +457,80 @@ class OnScreenMenu:
     def try_eval(self, func):
         try:
             return eval(func)
-        except:
-            return func
+        except Exception as e:
+            logger.error(f"{func=}, {e}")
+            return "error"
 
     def draw(self):
         # Draw a semi-transparent background overlay
         draw_rectangle(0, 0, get_screen_width(), get_screen_height(), fade(BLACK, 0.5))
 
-        # Draw Menu Box
+        # 1. Calculate Maximum Visible Items based on Screen Height
+        if self.in_osk: max_visible_items = Config.get('window.menu.osk_max_visible', 6)
+        else:           max_visible_items = Config.get('window.menu.max_visible', 24)
+        screen_max = (get_screen_height() - int(100 * self.df.scale)) // self.back_h
+        if screen_max > 0:
+            max_visible_items = min(max_visible_items, screen_max)
+
+        total_items = len(self.options)
+        visible_count = min(total_items, max_visible_items)
+
+        # 2. Calculate Scrolling Window Offset
+        start_index = 0
+        if total_items > visible_count:
+            # Keep selected item visible within the sliding window
+            if self.selected >= visible_count:
+                start_index = self.selected - visible_count + 1
+            if start_index + visible_count > total_items:
+                start_index = total_items - visible_count
+
+        end_index = start_index + visible_count
+
+        # 3. Dynamic Menu Dimensions
         menu_w = int(self.menus.get(f'{self.current}_width', 800) * self.df.scale)
-        menu_h = self.back_h * len(self.options) + self.back_b * 2
+        menu_h = self.back_h * visible_count + self.back_b * 2
         start_x = (get_screen_width() - menu_w) // 2
         start_y = (get_screen_height() - menu_h) // 2
 
-        #draw_rectangle(start_x, start_y, menu_w, menu_h, RAYWHITE)
-        #draw_rectangle_lines(start_x, start_y, menu_w, menu_h, DARKGRAY)
+        # 4. Render Scroll Indicator (Top)
+        if start_index > 0:
+            draw_text_ex(self.df.font, "▲", (start_x + menu_w - int(30 * self.df.scale), start_y - int(25 * self.df.scale)), self.font_h, 1.0, SKYBLUE)
 
-        # Draw Options
-        for i, option in enumerate(self.options):
+        # 5. Draw Visible Window of Options
+        for visible_i, i in enumerate(range(start_index, end_index)):
+            option = self.options[i]
             spinbox = 'e' in option
-            if spinbox: text = self.try_eval(option['e'])
-            elif 'g' in option: text = self.try_eval(option['g'])
-            else: text = option['t']
+            if spinbox:
+                text = self.try_eval(option['e'])
+            elif 'g' in option:
+                text = self.try_eval(option['g'])
+            else:
+                text = option['t']
+
             color = LIGHTGRAY
+            y_pos = start_y + self.back_b + (visible_i * self.back_h)
+
             if i == self.selected:
                 back_color = DARKGREEN if spinbox and self.in_spinbox else SKYBLUE
-                text_size = (measure_text_ex(self.df.font, text, self.font_h, 1.0))
-                draw_rectangle(start_x + self.back_b, start_y + self.back_b + (i * self.back_h), int(text_size.x) + self.back_b*2, self.back_h, back_color)
+                text_size = measure_text_ex(self.df.font, text, self.font_h, 1.0)
+                draw_rectangle(start_x + self.back_b, y_pos, int(text_size.x) + self.back_b * 2, self.back_h, back_color)
                 color = WHITE
+            elif self.is_dynamic and self.dynamic.current.entered == option:
+                back_color = WHITE
+                text_size = measure_text_ex(self.df.font, text, self.font_h, 1.0)
+                draw_rectangle(start_x + self.back_b, y_pos, int(text_size.x) + self.back_b * 2, self.back_h, back_color)
+                color = SKYBLUE
 
-            draw_text_ex(self.df.font, text, (start_x + self.text_b, start_y + self.text_b + (i * self.text_h)), self.font_h, 1.0, color)
+            draw_text_ex(self.df.font, text, (start_x + self.text_b, y_pos + (self.text_b // 2)), self.font_h, 1.0, color)
+
+        # 6. Render Scroll Indicator (Bottom)
+        if end_index < total_items:
+            draw_text_ex(self.df.font, "▼", (start_x + menu_w - int(30 * self.df.scale), start_y + menu_h + int(5 * self.df.scale)), self.font_h, 1.0, SKYBLUE)
+
+        if self.dynamic.current.help:
+            draw_text_ex(self.df.font, self.dynamic.current.help, (32, 64), int(self.font_h/1.5), 1.0, SKYBLUE)
 
         if self.in_osk:
             self.osk.draw()
 
-        dftext(self.devices.get_status(), -2, -3, font=self.df.font, fs=self.font_h-2, tint=WHITE, shadow=2)
+        dftext(self.devices.get_status(), -2, -3, font=self.df.font, fs=self.font_h - 2, tint=WHITE, shadow=2)
