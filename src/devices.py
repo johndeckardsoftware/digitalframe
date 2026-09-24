@@ -72,7 +72,7 @@ class Devices:
             {"texture": "wood.jpg", "opacity": 16, "type": 9},
             {"texture": "wood-white.jpg", "opacity": 16, "type": 9}, ]
         )
-        self.mattes_help = Config.get('items.types.image.matte.help', "0=image dominant color, 1=fixed color ('items.types.image.matte.color'), 2=perlin noise with dominat color, 3=gradient ('items.types.image.matte.start_color', 'items.types.image.matte.end_color', 4=gradient of dominat color, 9=matte original color" )
+        self.mattes_help = Config.get('items.types.image.matte.help', "Coloring texture 'type' values:\n 0=image dominant color,\n 1=fixed color (color),\n 2=perlin noise using dominat color,\n 3=gradient (from start_color to end_color),\n 4=gradient of dominat color,\n 9=texture original color" )
 
         self.actual_dir, self.dir_list = self.df.items.get_folders()
         self.dir_list_index = 0
