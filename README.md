@@ -13,13 +13,14 @@ Simple digital frame application developed in Python using [raylib](https://elec
   * Automatic "matte" background and borders depending on image size
   * Matte texture and borders customizable
   * Pairing of vertical images
-  * Filter by folder and metadata
+  * Filter by folder, metadata and visual content (CLIP Engine)
 * **Direct hardware integration (Raspberry only):**
   * **PIR Sensor:** For automatic screen power management based on human presence.
   * **BH1750 Light Sensor:** For automatic set image brightness to the room lux.
 * **Remote Control Support:**
   * Provides an automatic integration into [Home Assistant](https://www.home-assistant.io/) via MQTT discovery.
   * Dynamic key mapping for external HID devices like the BoxPut Remote or Bluedot.  
+  * [Voice Control](voice.md)
   * Light and Motion sensor via MQTT for Automatic screen power management based on human presence and ambient light photo blend.
 * **Live Folder Monitoring:** Real-time media files update using watchdog. Perfect for syncing files via **SFTP** or network shares without restarting.
 
