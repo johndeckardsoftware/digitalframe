@@ -42,47 +42,25 @@ Create or replace `/home/pi/.asoundrc`:
 ```ini
 pcm.!default {
     type plug
-    slave.pcm "dmixer"
-}
-
-pcm.dmixer {
-    type dmix
-    ipc_key 1024
-    ipc_key_add_uid false
-    ipc_perm 0666
-    slave {
-        pcm "hw:2,0"        # Points to bcm2835 Headphones (Card 2, Device 0)
-        format S16_LE
-        rate 44100
-        channels 2
-        period_size 1024
-        buffer_size 4096
-    }
-    bindings {
-        0 0
-        1 1
-    }
+    slave.pcm "hw:CARD=Headphones,DEV=0"
 }
 
 ctl.!default {
     type hw
-    card 2
+    card Headphones
 }
 
 ```
 
 ### Configure Analog Routing & Volume Levels
 
-Set the analog route and initial volume for Card 2:
+Set the initial volume for Card Headphones:
 
 ```bash
-# Set output routing to 3.5mm headphone jack on Card 2
-amixer -c 2 cset numid=3 1
+# Set 3.5mm Headphone analog volume level to 100%
+amixer -C Headphones sset Headphone 100% 2>/dev/null || amixer -C Headphones sset PCM 100%
 
-# Set analog volume level to 100%
-amixer -c 2 sset PCM 100% 2>/dev/null || amixer -c 2 set Headphone 100%
-
-# Save mixer state permanently across reboots
+# Save volume states permanently across reboots
 sudo alsactl store
 
 ```
@@ -92,7 +70,7 @@ sudo alsactl store
 Test sound playback through the 3.5mm audio jack:
 
 ```bash
-speaker-test -D default -c 2 -t sine -f 440
+speaker-test -D plughw:CARD=Headphones,DEV=0 -c 2 -t sine -f 440
 
 ```
 
