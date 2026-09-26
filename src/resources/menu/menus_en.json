@@ -77,7 +77,7 @@
         {"g": "f'Reserved ({self.on_off(self.df.items.private)})'", "k": "KEY_F6"},
         {"t": "Modify configuration", "fm": "self.menu_config_keys()"},
         {"t": "Save configuration", "f": "Config.save()"},
-        {"t": "Regenerate configuration", "f": "config_setup(create_md=True)"},
+        {"t": "Regenerate configuration", "f": "self.show3(config_setup(create_md=True))"},
         {"t": "Close", "f": "self.df.close(False)"},
         {"t": "Close and Save configuration", "f": "self.df.close()"},
         {"t": "Reload", "f": "self.df.reload(False)"},
