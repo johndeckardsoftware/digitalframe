@@ -457,7 +457,7 @@ class BoxPutRemote():
                 if self.boxput:
                     logger.debug("BoxPut event read loop started")
                     self.status = "running"
-                    
+
                     # Read loop using non-blocking select() to respect self.running
                     while self.running and self.boxput:
                         r, _, _ = select.select([self.boxput.fd], [], [], 0.5)
