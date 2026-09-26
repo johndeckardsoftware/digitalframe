@@ -59,7 +59,7 @@ class DigitalFrame:
         self.hdmi_power = Config.get('window.hdmi_power', 0)
         self.hdmi_is_connected = is_hdmi_connected(self)
         self.hdmi_off_timeout = Config.get('window.hdmi_off_timeout', 0)
-        self.image_ttl = Config.get('items.types.image.ttl', 10) # time to live in seconds
+        self.image_ttl = Config.get('items.types.image.ttl', 60) # time to live in seconds
         self.hdmi_switch_off_time = time.time() + (self.hdmi_off_timeout * 60)
         self.display = True
         self.paused = False
@@ -93,7 +93,7 @@ class DigitalFrame:
         self.overlay = None # texture handle
         self.overlay_file = None
         self.overlay_tint = Config.get('window.overlay_color', (255, 255, 255, 192))
-        # voice assistant instance
+        # VoiceAssistant class instance
         self.voice_assistant = None
         # peripherals
         self.devices = Devices(self)
@@ -296,7 +296,7 @@ class DigitalFrame:
         if Config.get('mqtt.enabled', False):
             self.mqtt = MQTT(self)
         else:
-            conf = Config.get('mqtt', None)
+            conf = Config.get('mqtt', {})
             if conf and 'server' not in conf:
                 conf["server"] = "server"
                 conf["port"] = 1883
