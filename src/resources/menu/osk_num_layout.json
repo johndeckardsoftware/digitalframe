@@ -1,0 +1,33 @@
+{
+    "base": [
+        ["1", "2", "3", "BACK"],
+        ["4", "5", "6", "LEFT"],
+        ["7", "8", "9", "RIGHT"],
+        ["0", ".", ",", "ENTER"]
+    ],
+    "shift": [
+        ["1", "2", "3", "BACK"],
+        ["4", "5", "6", "LEFT"],
+        ["7", "8", "9", "RIGHT"],
+        ["0", ".", "-", "ENTER"]
+    ],
+    "base_info": {
+        "key_size": 60,
+        "spacing": 10, 
+        "font_size": 20,
+        "BACK": [210, 130],
+        "ENTER": [210, 130],
+        "LEFT": [210, 130],
+        "RIGHT": [210, 130]
+    },
+    "phonetic_map": {
+        "zero": "0", "one": "1", "two": "2", "three": "3", "four": "4",
+        "five": "5", "six": "6", "seven": "7", "eight": "8", "nine": "9",
+        "minus": "-", "dash": "-", "dot": ".", "period": ".", "point": ".",
+        "backspace": "BACK", "delete": "BACK", "enter": "ENTER",
+        "left": "LEFT", "right": "RIGHT",
+        "zeero": "0", "uno": "1", "due": "2", "tre": "3", "quattro": "4",
+        "cinque": "5", "sei": "6", "sette": "7", "otto": "8", "nove": "9",
+        "meno": "-", "punto": ".", "sinistra": "LEFT", "destra": "RIGHT"
+    }
+}

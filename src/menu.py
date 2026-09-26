@@ -5,8 +5,87 @@ import clock
 from config import Config
 from config import config_setup # used menu_xx.json
 from osk import OnScreenKeyboard
+from color_picker import ColorPicker
 from dftext import dftext
 import utils.ddcutil as ddcutil # used in exec
+
+"""
+MENU ITEM CONFIGURATION KEYS:
+--------------------------------------------------------------------------------
+Key    Description
+--------------------------------------------------------------------------------
+t     : Static Display Text
+        String shown directly in the menu item.
+        Example: {"t": "Previous"}
+
+g     : Dynamic Display Text (Evaluated Python Expression)
+        String expression evaluated dynamically each frame to generate item label text.
+        Example: {"g": "f'Pause ({self.on_off(self.df.paused)})'"}
+
+e     : Spinbox / Value Evaluator Display Text
+        String expression evaluated to format and render interactive numeric/spinbox items.
+        Example: {"e": "f'Display time < {self.df.image_ttl} > sec.'"}
+
+f     : Action Callback (Executed Python Code)
+        Python code evaluated/executed when the item is activated (ENTER button or voice selection).
+        Example: {"f": "self.devices.set_video_sound()"}
+
+k     : Keyboard Shortcut / Virtual Input Action
+        Simulates a keypress or shortcut command via virtual input devices when activated.
+        Example: {"k": "KEY_F4"} or {"k": "CTRL+KEY_D"}
+
+m     : Static Navigation Submenu Target
+        Submenu name identifier to switch to upon pressing ENTER.
+        Example: {"m": "light"}
+
+fm    : Dynamic Navigation Submenu Target
+        Python function/expression evaluated on selection that returns the target menu key name.
+        Example: {"fm": "self.menu_border()"}
+
+fl    : Spinbox Decrement Callback (LEFT Arrow)
+        Python expression executed when pressing LEFT while editing a spinbox item ('e').
+        Example: {"fl": "self.devices.set_ttl(-10)"}
+
+fr    : Spinbox Increment Callback (RIGHT Arrow)
+        Python expression executed when pressing RIGHT while editing a spinbox item ('e').
+        Example: {"fr": "self.devices.set_ttl(10)"}
+
+fv    : Spinbox Direct Voice Input Callback
+        Python expression executed when setting a spinbox value directly via voice commands.
+        Example: {"fv": "self.devices.set_ttl(self.number, delta=False)"}
+
+back  : Navigation Flag
+        Boolean flag (`true`/`false`). When `true`, indicates a navigation back/exit button.
+        Example: {"t": "Back", "back": true, "m": "menu"}
+
+d     : Default Value for Virtual Keyboard / Color Picker
+        Evaluated Python expression providing initial string or RGBA state to inputs.
+        Example: {"d": "f'{self.df.items.get_filter()}'"}
+
+vk    : Full Virtual Keyboard Input Trigger
+        Boolean (`true`). Opens full On-Screen Keyboard (OSK) for text editing.
+        Example: {"t": "Edit Filter", "vk": true}
+
+np    : Numpad Virtual Keyboard Trigger
+        Boolean (`true`). Opens numeric On-Screen Keyboard layout for number entry.
+        Example: {"np": true}
+
+cp    : Color Picker Trigger
+        Boolean (`true`). Opens RGBA Color Picker widget for color adjustment.
+        Example: {"cp": true}
+
+_     : Boolean Toggle Trigger
+        Used internally in dynamic dictionary menus for boolean toggling.
+--------------------------------------------------------------------------------
+SPECIAL VOICE ASSISTANT KEYS (for 'voice_action'):
+--------------------------------------------------------------------------------
+s     : Require Voice Keyword Prefix
+        Boolean (`true`/`false`). Requires preceding action phrase or command context.
+
+r     : Regex Pattern Matching Flag
+        Boolean (`true`/`false`). Indicates whether command requires regex phrase expansion.
+--------------------------------------------------------------------------------
+"""
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +135,17 @@ class OnScreenMenu:
         #logger.setLevel(logging.DEBUG)
         self.df = digitalframe
         self.devices = devices
+        # VoiceAssistant class instance (set by digitalframe)
         self.va = None
+        # voice assistant support
+        self.number = 0
+        # virtual input devices
+        self.osk = OnScreenKeyboard(self)
+        self.is_osk = False
+        self.in_osk = False
+        self.color_picker = ColorPicker(digitalframe)
+        self.is_color_picker = False
+        self.in_color_picker = False
         # Style
         self.set_style_size(self.df.scale)
         # Menus state
@@ -72,13 +161,8 @@ class OnScreenMenu:
         self.in_action = False
         self.is_spinbox = False
         self.in_spinbox = False
-        self.osk = OnScreenKeyboard(self)
-        self.is_osk = False
-        self.in_osk = False
-        # voice assistant support
-        self.number = 0
-        self.config_ktree = Config.get_key_tree()
         # menu dynamic
+        self.config_ktree = Config.get_key_tree()
         self.dynamic = MenuDynamic()
         self.dynamic.current.list = None
         self.dynamic.current.dict = None
@@ -130,6 +214,25 @@ class OnScreenMenu:
 
         return menus
 
+    def set_menu(self, menu):
+        self.current = menu
+        self.is_dynamic = self.dynamic.set_current(menu)
+        self.options = self.menus[menu]
+        self.selected = self.menus[f"{menu}_sel"]
+        self.option = self.set_option()
+
+    def set_option(self):
+        option = self.options[self.selected]
+        self.is_spinbox = 'e' in option
+        self.in_spinbox = False
+        self.is_osk = 'vk' in option or 'np' in option
+        self.in_osk = False
+        self.is_color_picker = 'cp' in option
+        self.in_color_picker = False
+        if self.is_osk:
+            self.osk.load_layout(type="osk_full" if 'vk' in option else "osk_numpad")
+        return option
+
     # load a dynamic menu from a string array
     def create_menu_from_list(self, values, default="", f=None, fm=None, back="menu", name="dynamic"):
         self.dynamic.set_active(name)
@@ -158,8 +261,9 @@ class OnScreenMenu:
                 self.menus[f"{name}_help"] = v
                 self.dynamic.current.help = v
             else:
-                option = {"g": self.get_dynamic_kv(k), "vk": True, "d": self.get_dynamic_v(k),
-                          "f": f"self.set_dynamic_kv('{k}', 'self.osk.typed_text', '{f}')"}
+                input, output = self.get_in_out(k, v)
+                option = {"g": self.get_dynamic_fkv(k), input: True, "d": self.get_dynamic_fv(k),
+                          "f": f"self.set_dynamic_kv('{k}', '{output}', '{f}')"}
                 lmo.append(option)
                 if k == default:
                     self.dynamic.current.entered = option
@@ -179,18 +283,19 @@ class OnScreenMenu:
     def get_dynamic_text(self):
         return self.menus[f"{self.dynamic.current.name}_text"]
 
-    def get_dynamic_kv(self, k):
+    def get_dynamic_fkv(self, k):
         return "f'" + k + " (" + "{self.dynamic.current.dict[\"" + k + "\"]})'"
 
-    def get_dynamic_v(self, k):
+    def get_dynamic_fv(self, k):
         return "f'{self.dynamic.current.dict[\"" + k + "\"]}'"
 
     def set_dynamic_kv(self, k, fv, f):
         v = self.try_eval(fv)
-        try:
-            v = ast.literal_eval(v)
-        except (ValueError, SyntaxError):
-            pass
+        if isinstance(v, str):
+            try:
+                v = ast.literal_eval(v)
+            except (ValueError, SyntaxError):
+                pass
         self.dynamic.current.dict[k] = v
         if f:
             try:
@@ -199,6 +304,29 @@ class OnScreenMenu:
                 logger.error(f"{k=}, {fv=} {f=}")
                 return
         self.dynamic.current.entered = self.menus[self.current][self.selected]
+
+    def get_in_out(self, key, value):
+        # Parse string representation if necessary
+        if isinstance(value, str):
+            try:
+                value = ast.literal_eval(value)
+            except:
+                pass
+
+        # 1. Color Picker check (tuples/lists of 3 or 4 RGB(A) ints 0-255)
+        if isinstance(value, (list, tuple)) and len(value) in (3, 4):
+            if all(isinstance(x, int) and 0 <= x <= 255 for x in value):
+                return "cp", "self.color_picker.get_rgba()"
+
+        # 2. Boolean check
+        if isinstance(value, bool):
+            return "_", f"not self.dynamic.current.dict[\"{key}\"]"
+
+        # 3. Numeric check (integers or floats)
+        if type(value) in (int, float):
+            return "np", "self.osk.typed_text"
+
+        return "vk", "self.osk.typed_text"
 
     def save(self, conf_key, key, new_value):
         cur_value = self.conf.get(conf_key, None)
@@ -251,6 +379,14 @@ class OnScreenMenu:
                     if "f" in self.option: exec(self.option['f'])
                 return
 
+            if self.in_color_picker:
+                # Update D-pad navigation
+                self.in_color_picker = self.color_picker.update_dpad(key)
+                if not self.in_color_picker: # Picker closed
+                    if "f" in self.option:
+                        exec(self.option['f'])
+                return
+
             # D-pad Navigation
             if key == KeyboardKey.KEY_DOWN:
                 self.selected = (self.selected + 1) % len(self.options)
@@ -271,6 +407,7 @@ class OnScreenMenu:
 
                 if menu := self.option.get('m', None):
                     self.set_menu(menu)
+                    self.dynamic.current.help = None
                     return
 
                 if self.is_spinbox:
@@ -281,6 +418,12 @@ class OnScreenMenu:
                     self.in_osk = True
                     if 'd' in self.option:
                         self.osk.set_typed_text(eval(self.option['d']))
+                    return
+
+                if self.is_color_picker:
+                    self.in_color_picker = True
+                    if 'd' in self.option:
+                        self.color_picker.set_rgba(eval(self.option['d']))
                     return
 
                 self.in_action = True
@@ -294,23 +437,90 @@ class OnScreenMenu:
                     self.set_menu(self.try_eval(menu))
                     return
 
-            elif key == KeyboardKey.KEY_BACK or key == KeyboardKey.KEY_END:
+            elif key in (KeyboardKey.KEY_BACK, KeyboardKey.KEY_BACKSPACE):
+                self.set_menu(self.options[len(self.options) - 1].get('m', "menu"))
+                self.dynamic.current.help = None
+            elif key == KeyboardKey.KEY_END:
                 self.set_menu("menu")
+                self.dynamic.current.help = None
 
-    def set_menu(self, menu):
-        self.current = menu
-        self.is_dynamic = self.dynamic.set_current(menu)
-        self.options = self.menus[menu]
-        self.selected = self.menus[f"{menu}_sel"]
-        self.option = self.set_option()
+    def draw(self):
+        # Draw a semi-transparent background overlay
+        draw_rectangle(0, 0, get_screen_width(), get_screen_height(), fade(BLACK, 0.5))
 
-    def set_option(self):
-        option = self.options[self.selected]
-        self.is_spinbox = 'e' in option
-        self.in_spinbox = False
-        self.is_osk = 'vk' in option
-        self.in_osk = False
-        return option
+        # 1. Calculate Maximum Visible Items based on Screen Height
+        if self.in_osk: max_visible_items = Config.get('window.menu.osk_max_visible', 6)
+        else:           max_visible_items = Config.get('window.menu.max_visible', 24)
+        screen_max = (get_screen_height() - int(100 * self.df.scale)) // self.back_h
+        if screen_max > 0:
+            max_visible_items = min(max_visible_items, screen_max)
+
+        total_items = len(self.options)
+        visible_count = min(total_items, max_visible_items)
+
+        # 2. Calculate Scrolling Window Offset
+        start_index = 0
+        if total_items > visible_count:
+            # Keep selected item visible within the sliding window
+            if self.selected >= visible_count:
+                start_index = self.selected - visible_count + 1
+            if start_index + visible_count > total_items:
+                start_index = total_items - visible_count
+
+        end_index = start_index + visible_count
+
+        # 3. Dynamic Menu Dimensions
+        menu_w = int(self.menus.get(f'{self.current}_width', 800) * self.df.scale)
+        menu_h = self.back_h * visible_count + self.back_b * 2
+        start_x = (get_screen_width() - menu_w) // 2
+        start_y = (get_screen_height() - menu_h) // 2
+
+        # 4. Render Scroll Indicator (Top)
+        if start_index > 0:
+            draw_text_ex(self.df.font, "▲", (start_x + menu_w - int(30 * self.df.scale), start_y - int(25 * self.df.scale)), self.font_h, 1.0, SKYBLUE)
+
+        # 5. Draw Visible Window of Options
+        for visible_i, i in enumerate(range(start_index, end_index)):
+            option = self.options[i]
+            spinbox = 'e' in option
+            if spinbox:
+                text = self.try_eval(option['e'])
+            elif 'g' in option:
+                text = self.try_eval(option['g'])
+            else:
+                text = option['t']
+
+            color = LIGHTGRAY
+            y_pos = start_y + self.back_b + (visible_i * self.back_h)
+
+            if i == self.selected:
+                back_color = DARKGREEN if spinbox and self.in_spinbox else SKYBLUE
+                text_size = measure_text_ex(self.df.font, text, self.font_h, 1.0)
+                draw_rectangle(start_x + self.back_b, y_pos, int(text_size.x) + self.back_b * 2, self.back_h, back_color)
+                color = WHITE
+            elif self.is_dynamic and self.dynamic.current.entered == option:
+                back_color = WHITE
+                text_size = measure_text_ex(self.df.font, text, self.font_h, 1.0)
+                draw_rectangle(start_x + self.back_b, y_pos, int(text_size.x) + self.back_b * 2, self.back_h, back_color)
+                color = SKYBLUE
+
+            draw_text_ex(self.df.font, text, (start_x + self.text_b, y_pos + (self.text_b // 2)), self.font_h, 1.0, color)
+
+        # 6. Render Scroll Indicator (Bottom)
+        if end_index < total_items:
+            draw_text_ex(self.df.font, "▼", (start_x + menu_w - int(30 * self.df.scale), start_y + menu_h + int(5 * self.df.scale)), self.font_h, 1.0, SKYBLUE)
+
+        if self.dynamic.current.help:
+            draw_text_ex(self.df.font, self.dynamic.current.help, (32, 64), int(self.font_h/1.5), 1.0, SKYBLUE)
+
+        if self.in_osk:
+            self.osk.draw()
+
+        if self.in_color_picker:
+            self.color_picker.update_mouse()
+            self.color_picker.draw(font=self.df.font)
+
+        dftext(self.devices.get_status(), -2, -3, font=self.df.font, fs=self.font_h - 2, tint=WHITE, shadow=2)
 
     #
     # menu helper
@@ -380,9 +590,8 @@ class OnScreenMenu:
         self.dynamic.set_active(menu)
         if key is not None:
             conf_key = f"{self.menus['config_keys_text']}.{key}"
-            values = Config.get(conf_key, [])
+            values = self.conf(conf_key, [])
             if isinstance(values, list):
-                #self.create_menu_from_list(values, back="config_subkeys", name=menu)
                 temp_dict = {key: f"{values}"}
                 self.create_menu_from_dict(temp_dict, conf_key=conf_key, back="config_subkeys", name=menu)
             elif isinstance(values, dict):
@@ -460,77 +669,3 @@ class OnScreenMenu:
         except Exception as e:
             logger.error(f"{func=}, {e}")
             return "error"
-
-    def draw(self):
-        # Draw a semi-transparent background overlay
-        draw_rectangle(0, 0, get_screen_width(), get_screen_height(), fade(BLACK, 0.5))
-
-        # 1. Calculate Maximum Visible Items based on Screen Height
-        if self.in_osk: max_visible_items = Config.get('window.menu.osk_max_visible', 6)
-        else:           max_visible_items = Config.get('window.menu.max_visible', 24)
-        screen_max = (get_screen_height() - int(100 * self.df.scale)) // self.back_h
-        if screen_max > 0:
-            max_visible_items = min(max_visible_items, screen_max)
-
-        total_items = len(self.options)
-        visible_count = min(total_items, max_visible_items)
-
-        # 2. Calculate Scrolling Window Offset
-        start_index = 0
-        if total_items > visible_count:
-            # Keep selected item visible within the sliding window
-            if self.selected >= visible_count:
-                start_index = self.selected - visible_count + 1
-            if start_index + visible_count > total_items:
-                start_index = total_items - visible_count
-
-        end_index = start_index + visible_count
-
-        # 3. Dynamic Menu Dimensions
-        menu_w = int(self.menus.get(f'{self.current}_width', 800) * self.df.scale)
-        menu_h = self.back_h * visible_count + self.back_b * 2
-        start_x = (get_screen_width() - menu_w) // 2
-        start_y = (get_screen_height() - menu_h) // 2
-
-        # 4. Render Scroll Indicator (Top)
-        if start_index > 0:
-            draw_text_ex(self.df.font, "▲", (start_x + menu_w - int(30 * self.df.scale), start_y - int(25 * self.df.scale)), self.font_h, 1.0, SKYBLUE)
-
-        # 5. Draw Visible Window of Options
-        for visible_i, i in enumerate(range(start_index, end_index)):
-            option = self.options[i]
-            spinbox = 'e' in option
-            if spinbox:
-                text = self.try_eval(option['e'])
-            elif 'g' in option:
-                text = self.try_eval(option['g'])
-            else:
-                text = option['t']
-
-            color = LIGHTGRAY
-            y_pos = start_y + self.back_b + (visible_i * self.back_h)
-
-            if i == self.selected:
-                back_color = DARKGREEN if spinbox and self.in_spinbox else SKYBLUE
-                text_size = measure_text_ex(self.df.font, text, self.font_h, 1.0)
-                draw_rectangle(start_x + self.back_b, y_pos, int(text_size.x) + self.back_b * 2, self.back_h, back_color)
-                color = WHITE
-            elif self.is_dynamic and self.dynamic.current.entered == option:
-                back_color = WHITE
-                text_size = measure_text_ex(self.df.font, text, self.font_h, 1.0)
-                draw_rectangle(start_x + self.back_b, y_pos, int(text_size.x) + self.back_b * 2, self.back_h, back_color)
-                color = SKYBLUE
-
-            draw_text_ex(self.df.font, text, (start_x + self.text_b, y_pos + (self.text_b // 2)), self.font_h, 1.0, color)
-
-        # 6. Render Scroll Indicator (Bottom)
-        if end_index < total_items:
-            draw_text_ex(self.df.font, "▼", (start_x + menu_w - int(30 * self.df.scale), start_y + menu_h + int(5 * self.df.scale)), self.font_h, 1.0, SKYBLUE)
-
-        if self.dynamic.current.help:
-            draw_text_ex(self.df.font, self.dynamic.current.help, (32, 64), int(self.font_h/1.5), 1.0, SKYBLUE)
-
-        if self.in_osk:
-            self.osk.draw()
-
-        dftext(self.devices.get_status(), -2, -3, font=self.df.font, fs=self.font_h - 2, tint=WHITE, shadow=2)

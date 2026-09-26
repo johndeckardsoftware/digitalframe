@@ -5,18 +5,23 @@ from config import Config
 logger = logging.getLogger(__name__)
 
 class OnScreenKeyboard:
-    def __init__(self, devices, x=None, y=None, layout=None):
+    def __init__(self, devices, x=None, y=None, file=None):
         #logger.setLevel(logging.DEBUG)
         self.devices = devices
         self.df = devices.df
         self.pos_x = x
         self.pos_y = y
-        # keyboard geometry
-        self.layouts = self.load_layout(layout)
-        self.layout = self.layouts['base']
-        self.info = self.layouts['base_info']
-        # Load phonetic map dynamically per layout (with fallback)
-        self.phonetic_map = self.layouts.get('phonetic_map', {})
+        #trick for config autogeneration
+        self.conf = Config
+        self._ = Config.get(f'window.menu.osk_full', "osk_en_layout.json")
+        self._ = Config.get(f'window.menu.osk_numpad', "osk_num_layout.json")
+        # keyboard geometry and info
+        self.type = None
+        self.file = None
+        self.layouts = None
+        self.layout = None
+        self.info = None
+        self.phonetic_map = None #self.layouts.get('phonetic_map', {})
         # kb state
         self.row = 0
         self.col = 0
@@ -25,14 +30,48 @@ class OnScreenKeyboard:
         self.is_shift = False
         # real kb
         self.is_real = False
-        # style
-        self.set_style_size(self.devices.df.scale)
 
-    def load_layout(self, layout):
-        if not layout:
-            layout = Config.get('window.menu.osk_layout', "osk_en_layout.json")
-        with open(os.path.join(Config.RESOURCES_MENU, layout), "r", encoding="UTF-8") as f:
-            return json.load(f)
+        if file is not None:
+            self.load_layout(file=file)
+
+    def load_layout(self, type=None, file=None):
+        if not file:
+            if not type:
+                type = "osk_full"
+            if self.type == type:
+                return
+            self.file = self.conf.get(f'window.menu.{type}', "osk_en_layout.json")
+        else:
+            self.file = file
+
+        path_file = os.path.join(Config.RESOURCES_MENU, self.file)
+        if os.path.exists(path_file):
+            with open(os.path.join(Config.RESOURCES_MENU, path_file), "r", encoding="UTF-8") as f:
+                self.type = type
+                self.layouts = json.load(f)
+                self.layout = self.layouts['base']
+                self.info = self.layouts['base_info']
+                # Load phonetic map dynamically per layout (with fallback)
+                self.phonetic_map = self.layouts.get('phonetic_map', {})
+                self.set_style_size(self.df.scale)
+        else:
+            logger.error(f"OSK layout file {path_file} not found.")
+
+    def set_style_size(self, scale):
+        if self.info:
+            self.key_size = int(self.info['key_size'] * scale)
+            self.spacing = int(self.info['spacing'] * scale)
+            self.font_size = int(self.info['font_size'] * scale)
+            self.font_spacing = 1
+            self.set_kb_pos()
+
+    def set_kb_pos(self):
+        #if not self.pos_x:
+        width = len(self.layout[0]) * (self.key_size + self.spacing)
+        self.pos_x = (self.devices.df.width - width) // 2
+        #if not self.pos_y:
+        height = len(self.layout) * (self.key_size + self.spacing)
+        self.pos_y = self.devices.df.height - height
 
     def set_typed_text(self, t):
         self.typed_text = t
@@ -54,21 +93,6 @@ class OnScreenKeyboard:
                 self._insert_char(char_to_insert)
         except Exception as e:
             logger.error(f"Voice insertion failed: {e}")
-
-    def set_style_size(self, scale):
-        self.key_size = int(self.info['key_size'] * scale)
-        self.spacing = int(self.info['spacing'] * scale)
-        self.font_size = int(self.info['font_size'] * scale)
-        self.font_spacing = 1
-        self.get_kb_pos()
-
-    def get_kb_pos(self):
-        #if not self.pos_x:
-        width = len(self.layout[0]) * (self.key_size + self.spacing)
-        self.pos_x = (self.devices.df.width - width) // 2
-        #if not self.pos_y:
-        height = len(self.layout) * (self.key_size + self.spacing)
-        self.pos_y = self.devices.df.height - height
 
     def update(self, key):
         # Navigation
