@@ -27,7 +27,7 @@ class TeletextPlugin(PluginWrapper):
         self.ttl = 10
         self.ftt = 9999
         self.in_osk = False
-        self.osk = OnScreenKeyboard(self, layout="osk_teletext.json")
+        self.osk = OnScreenKeyboard(self, file="osk_teletext.json")
         self.page_texture = None
 
         if not os.path.exists(self.cache_path):
