@@ -1,4 +1,4 @@
-import os, logging
+import os, logging, shutil
 import json, re
 import ast
 from pathlib import Path
@@ -161,6 +161,96 @@ class Config:
 
         return tree
 
+    @staticmethod
+    def backup(max_backups: int = 10) -> str | None:
+        """
+        Creates a rolling backup of the current config_file up to max_backups.
+        Re-indexes existing backups and deletes the oldest if total exceeds max_backups.
+        """
+        if not Config.config_file or not os.path.exists(Config.config_file):
+            return None
+
+        file_path = Path(Config.config_file)
+        stem = file_path.stem  # e.g., "config"
+        ext = file_path.suffix  # e.g., ".json"
+        parent = file_path.parent
+
+        # Find existing backup files matching stem_X.ext
+        pattern = re.compile(rf"^{re.escape(stem)}_(\d+){re.escape(ext)}$")
+        existing_backups = []
+
+        for p in parent.iterdir():
+            if p.is_file():
+                match = pattern.match(p.name)
+                if match:
+                    existing_backups.append((int(match.group(1)), p))
+
+        # Sort backups by index in ascending order (1, 2, 3...)
+        existing_backups.sort(key=lambda x: x[0])
+
+        # Shift indices if max limit reached
+        if len(existing_backups) >= max_backups:
+            # Delete the oldest backup (the lowest index)
+            oldest_idx, oldest_path = existing_backups.pop(0)
+            if oldest_path.exists():
+                oldest_path.unlink()
+
+            # Shift remaining files (e.g. config_2 -> config_1, config_3 -> config_2)
+            for new_idx, (_, path) in enumerate(existing_backups, start=1):
+                new_name = parent / f"{stem}_{new_idx}{ext}"
+                path.rename(new_name)
+
+            next_index = max_backups
+        else:
+            next_index = len(existing_backups) + 1
+
+        # Create the new backup file
+        backup_path = parent / f"{stem}_{next_index}{ext}"
+        shutil.copy2(Config.config_file, backup_path)
+        return str(backup_path)
+    
+    @staticmethod
+    def restore(backup_file: str) -> bool:
+        """
+        Restores the active config.json from a backup file path (e.g. output of Config.backup()).
+        Reloads Config.config dictionary into memory.
+        """
+        if not backup_file or not os.path.exists(backup_file):
+            print(f"Restore failed: Backup file '{backup_file}' does not exist.")
+            return False
+
+        try:
+            # Copy backup back to active config file destination
+            target_file = Config.config_file or 'config.json'
+            shutil.copy2(backup_file, target_file)
+            Config.config_file = target_file
+
+            # Reload internal config dict state from restored file
+            with open(target_file, "r", encoding="utf-8") as f:
+                Config.config = json.load(f)
+            return True
+        except Exception as e:
+            print(f"Error restoring from {backup_file}: {e}")
+            return False
+    
+    @staticmethod
+    def delete(backup_first: bool = True) -> bool:
+        """
+        Deletes config_file and resets internal config state.
+        Optionally creates a backup before deletion.
+        """
+        if Config.config_file and os.path.exists(Config.config_file):
+            if backup_first:
+                Config.backup()
+            try:
+                os.remove(Config.config_file)
+                Config.config = {}
+                return True
+            except Exception as e:
+                print(f"Error deleting {Config.config_file}: {e}")
+                return False
+        return False
+    
 def analyze_config_calls(file_path, key_default, full_call):
     with open(file_path, 'rb') as f:
         source = f.read().decode('utf-8')
@@ -206,7 +296,7 @@ def config_setup(create_md=False):
     full_call = []
     list_files(os.path.join(Config.WORK_PATH, "src"), key_default, full_call)
 
-    #full_call = sorted(full_call)
+    full_call = sorted(full_call)
     #key_default = sorted(key_default, key=lambda x: x['key'].lower())
 
     make_config = "\nimport os, logging\nscale=1.0\n"
@@ -215,7 +305,10 @@ def config_setup(create_md=False):
             make_config += item + "\n"
     make_config += "\nConfig.save()"
 
+    backup_file = None
     try:
+        backup_file = Config.backup()
+        Config.delete(backup_first=False)
         exec(make_config)
         plugins_config = os.path.join(Config.RESOURCES_CONFIG, "plug_config.json")
         if os.path.exists(plugins_config):
@@ -230,7 +323,9 @@ def config_setup(create_md=False):
 
         logger.info(f"{Config.config_file} created successfully ({len(full_call)} entries).")
     except Exception as e:
+        Config.restore(backup_file)
         logger.error(f"{make_config}\nExecution failed: {e}")
+        return f"{e}. see log for more info"
 
     # Write to Markdown file
     if create_md:
@@ -244,6 +339,7 @@ def config_setup(create_md=False):
                 out_item(md, key, key, item)
 
         logger.info(f"Successfully generated {output_file}")
+    return "done"
 
 def out_item(md, fullkey, key, item):
     if isinstance(item, dict):
