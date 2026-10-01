@@ -356,7 +356,7 @@ class Devices:
         else:
             lux = value
         if lux < 0: lux = 0
-        self.df.set_brightness(lux)
+        self.df.set_lux(lux)
         self.show3(f"lux: {lux}: brightness: {self.df.get_brightness()}")
 
     def set_direction(self, sign):

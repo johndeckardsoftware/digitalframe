@@ -338,7 +338,7 @@ class DigitalFrame:
         else:
             return 0    # for original brightness
 
-    def set_brightness(self, value):
+    def set_lux(self, value):
         self.lux = value
         value += self.lux_adj * get_gauss_hour()
         b = self.brightness
@@ -349,7 +349,7 @@ class DigitalFrame:
     def set_lux_adj(self, value, delta=True):
         self.lux_adj = self.lux_adj + value if delta else value
         Config.set('window.lux_adjustment', self.lux_adj)
-        self.set_brightness(self.lux)
+        self.set_lux(self.lux)
 
     def set_matting(self, value):
         self.matting = True if value else False
@@ -392,6 +392,18 @@ class DigitalFrame:
             if self.display_off():
                 self.display_set_on()
                 self.publish_state()
+
+    def is_standby(self):
+        return (self.hdmi_off_timeout == 0.0 and
+            self.motion_enabled == False and
+            self.display_off())
+
+    def set_standby(self, value=None):
+        if not value:
+            key = "KEY_F8" if self.is_standby() else "KEY_F7"
+        else:
+            key = "KEY_F8" if value == "OFF" else "KEY_F7"
+        self.devices.send_keys(key)
 
     def get_debug_msg(self):
         msg = f"screen={self.width}x{self.height}, ratio={self.ratio}, fps={clock.fps};{clock.rft:.3f}, folder={self.items.folder}, \

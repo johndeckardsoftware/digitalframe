@@ -83,7 +83,7 @@ class BH1750():
                 logger.debug(f"Luminance: {lux}")
                 if lux != self.lux:
                     self.lux = lux
-                    self.df.set_brightness(lux)
+                    self.df.set_lux(lux)
                 time.sleep(self.wait_time)
 
         except Exception as e:
