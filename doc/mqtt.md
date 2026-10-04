@@ -1,62 +1,65 @@
 
 
+---
+
+# MQTT Integration Documentation
+
 > 📌 **Note on `{device_id}`:**
-> The placeholder `{device_id}` used in the topics below is fully configurable via the application's configuration file (`mqtt.device_id`). If it is not explicitly set, it defaults to **`"digitalframe"`**.
+> The placeholder `{device_id}` used across topics is configurable in the application settings (`mqtt.device_id`). If not explicitly set, it defaults to **`"digitalframe"`**.
+> 
+> 
 
 ---
 
 ## 1. Subscribed Topics (Inbound Commands)
 
-These are the topics the script listens to for incoming commands from Home Assistant or another MQTT client to control the digital frame.
+These are the topics the application listens to for incoming commands and external sensor updates.
 
-| Topic | Description |
-| --- | --- |
-| `homeassistant/switch/{device_id}/#` | General Home Assistant discovery and control subscription path. |
-| `homeassistant/switch/{device_id}_{switch_name}/set` | Receives toggles (`ON`/`OFF`) for various switches: `display`, `clock`, `shuffle`, `paused`, and several text overlays (`title_toggle`, `caption_toggle`, `name_toggle`, `date_toggle`, `location_toggle`, `directory_toggle`, `text_off`). |
-| `homeassistant/button/{device_id}_{button_name}/set` | Listens for a payload of `ON` to trigger button press simulations for navigating images: `_back/set` and `_next/set`. |
-| `{device_id}/directory` | Receives a string parameter to dynamically change the active folder/subdirectory of images. |
-| `{device_id}/time_delay` | Receives a value to change the image transition duration (`image_ttl`). |
-| `{device_id}/brightness` | Receives a value to adjust the display brightness. |
-| `{device_id}/location_filter` | Receives text input to filter images based on geographic location. |
-| `{device_id}/tags_filter` | Receives text input to filter images based on specific tags. |
-| `{device_id}/motion` | Receives data to manage motion-sensor behavior or levels. |
-| `{device_id}/autosleep` | Receives timeout configurations (in seconds) for turning off the display automatically. |
-| `{device_id}/extra` | Receives a boolean value (`on`/`true`/`1`) to toggle the inclusion of private/hidden files. |
-| `{device_id}/stop` | Shuts down the application logic gracefully. |
-| `{device_id}/reboot` | Triggers a hardware system reboot. |
-| `{device_id}/power_down` | Triggers a hardware system shutdown. |
-| `{device_id}/keyboard` | Receives key strokes to simulate a virtual keyboard interface. |
-| `{device_id}/image_counter` | Subscribes to its own metric (likely registered during configuration setups). |
-| `{device_id}/image` | Subscribes to its own metric (registered during configuration setups). |
-| `{device_id}/temperature` | Subscribes to its own metric (registered during configuration setups). |
+| Topic | Expected Payload | Description |
+| --- | --- | --- |
+| `homeassistant/switch/{device_id}/#`<br> | — | General subscription for switch state discovery and command routing. |
+| `homeassistant/switch/{device_id}/{switch_name}/set`<br> | `ON` / `OFF`<br> | Receives toggles for switches: `meta_name`, `meta_title`, `meta_caption`, `meta_date`, `meta_location`, `meta_directory`, `meta_off`, `clock`, `shuffle`, `paused`, `monitor`, and `standby`. |
+| `homeassistant/button/{device_id}/{button_name}/set`<br> | `ON`<br> | Listens for button presses to control playback: `back` and `next`. |
+| `{device_id}/directory`<br> | `string`<br> | Changes the active folder/directory for image rendering. |
+| `{device_id}/time_delay`<br> | `float` / `int`<br> | Updates the image display interval duration (`image_ttl`). |
+| `{device_id}/location_filter`<br> | `string`<br> | Sets a location query filter for images. |
+| `{device_id}/tags_filter`<br> | `string`<br> | Sets image tag filtering constraints. |
+| `{device_id}/autosleep`<br> | `float` / `int`<br> | Sets the HDMI display auto-off timeout in seconds. |
+| `{device_id}/extra`<br> | `on` / `true` / `1` / `off` / `false` / `0`<br> | Toggles display of private/extra image sets. |
+| `{device_id}/stop`<br> | Any | Safely stops the application loops and exits. |
+| `{device_id}/reboot`<br> | Any | Reboots the host hardware system. |
+| `{device_id}/power_down`<br> | Any | Gracefully shuts down the host hardware system. |
+| `{device_id}/keyboard`<br> | `string`<br> | Injects synthetic key events into the input queue. |
+| `{configured_state_topic}`<br> | `float` / `int`<br> | Subscribes to custom external devices configured under `mqtt.devices` (e.g., motion or ambient illumination/lux sensors). |
 
 ---
 
-## 2. Published Topics (Outbound Discovery & State)
+## 2. Published Topics (Outbound Discovery & Telemetry)
 
-These are the topics where the script pushes configuration setups for Home Assistant MQTT Discovery, telemetry data, and device status updates.
+### Home Assistant Auto-Discovery Configurations (`retain=True`, `qos=0`)
 
-### Home Assistant Auto-Discovery Configurations
 
-These payloads are published with `retain=True` on startup to automatically expose entities inside Home Assistant.
 
-| Topic | Description |
-| --- | --- |
-| `homeassistant/sensor/{device_id}_{sensor_name}/config` | Registers entities for telemetry data: `image_counter` and `image`. |
-| `homeassistant/text/{device_id}_{text_name}/config` | Registers input text filters: `location_filter` and `tags_filter`. |
-| `homeassistant/number/{device_id}_{number_name}/config` | Registers configuration adjustments: `brightness`, `time_delay`, `motion`, and `autosleep`. |
-| `homeassistant/select/{device_id}_directory/config` | Registers a dropdown selection entity containing the available image directory list. |
-| `homeassistant/switch/{device_id}_{switch_name}/config` | Registers all binary switches (`display`, `paused`, text toggles, etc.). |
-| `homeassistant/button/{device_id}_{button_name}/config` | Registers interaction buttons (`back`, `next`). |
+These topics automatically register components in Home Assistant upon client startup.
 
-### Status, Telemetry, and State Changes
+| Topic | Domain | Registered Entity Name(s) |
+| --- | --- | --- |
+| `homeassistant/sensor/{device_id}/{topic}/config`<br> | `sensor`<br> | `location_filter`, `tags_filter`, `image_counter`, `image`, `temperature`<br> |
+| `homeassistant/text/{device_id}/{topic}/config`<br> | `text`<br> | `location_filter`, `tags_filter`<br> |
+| `homeassistant/number/{device_id}/{topic}/config`<br> | `number`<br> | `brightness` (-128 to 128), `time_delay` (1 to 3600), `motion` (0.0 to 100.0), `autosleep` (0.0 to 3600.0) |
+| `homeassistant/select/{device_id}/{topic}/config`<br> | `select`<br> | `directory` (populated with available folder options) |
+| `homeassistant/switch/{device_id}/{topic}/config`<br> | `switch`<br> | `meta_name`, `meta_title`, `meta_caption`, `meta_date`, `meta_location`, `meta_directory`, `meta_off`, `clock`, `shuffle`, `paused`, `monitor`, `standby`<br> |
+| `homeassistant/button/{device_id}/{topic}/config`<br> | `button`<br> | `back`, `next`<br> |
 
-These topics handle the actual runtime values of the frame's states and diagnostic metrics.
+---
 
-| Topic | Description |
-| --- | --- |
-| `homeassistant/switch/{device_id}/available` | **Availability Topic / Last Will:** Broadcasts `"online"` on connect, and `"offline"` on app disconnect to monitor frame connection status. |
-| `homeassistant/sensor/{device_id}_image/state` | Sends a JSON payload representing the filename of the currently rendered image. |
-| `homeassistant/sensor/{device_id}_image/attributes` | Transmits custom metadata properties belonging to the current active image. |
-| `homeassistant/sensor/{device_id}/state` | A unified JSON payload packing concurrent values for: `directory`, `image_counter`, `location_filter`, `tags_filter`, `time_delay`, `motion`, `brightness`, `temperature`, and `autosleep`. |
-| `homeassistant/switch/{device_id}_{switch_name}/state` | Publishes regular states (`ON`/`OFF`) whenever switches like `paused`, `shuffle`, `display`, or the configuration display toggles are switched manually or updated programmatically. |
+### Status, Telemetry, and State Updates
+
+| Topic | Payload Format | Description |
+| --- | --- | --- |
+| `homeassistant/switch/{device_id}/available`<br> | `online` / `offline`<br> | **Last Will & Testament (LWT):** Broadcasts application availability state. |
+| `homeassistant/sensor/{device_id}/state`<br> | `JSON`<br> | Combined telemetry payload published on state update. Key properties include: `directory`, `image_counter`, `location_filter`, `tags_filter`, `time_delay`, `motion`, `brightness`, `lux`, `temperature`, and `autosleep`. |
+| `homeassistant/sensor/{device_id}/image/state`<br> | `JSON` (`{"image": "filename.jpg"}`)
+ | Publishes the filename of the currently displayed image entity. |
+| `homeassistant/sensor/{device_id}/image/attributes`<br> | `JSON`<br> | Transmits EXIF metadata attributes for the current active image. |
+| `homeassistant/switch/{device_id}/{switch_name}/state`<br> | `ON` / `OFF`<br> | Reflects binary switch state changes (`paused`, `shuffle`, `monitor`, `standby`, `clock`, `meta_*`). |
