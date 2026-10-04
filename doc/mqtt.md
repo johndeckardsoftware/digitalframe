@@ -32,6 +32,33 @@ These are the topics the application listens to for incoming commands and extern
 | `{device_id}/keyboard`<br> | `string`<br> | Injects synthetic key events into the input queue. |
 | `{configured_state_topic}`<br> | `float` / `int`<br> | Subscribes to custom external devices configured under `mqtt.devices` (e.g., motion or ambient illumination/lux sensors). |
 
+
+### External Device Configuration (`config.json`)
+
+To route external sensor topics (such as PIR motion sensors or BH1750 ambient light sensors) into the frame's internal handlers (`set_motion` and `set_lux`), define them inside the `mqtt.devices` array in `config.json`:
+
+```json
+{
+    "mqtt": {
+        "client_id": "digitalframe",
+        "device_id": "digitalframe",
+        "enabled": true,
+        "login": "user",
+        "password": "password",
+        "port": 1883,
+        "server": "server",
+        "tls": "",
+        "devices": [
+            {"state_topic": "rvml/sensors/pir/status", "device_class": "motion"},
+            {"state_topic": "home/e04b4101a7fc0000000000009cac0000_AllArea/status", "device_class": "motion"},
+            {"state_topic": "rvml/sensors/bh1750/status", "device_class": "illumination"}
+        ]
+    }
+}
+
+```
+
+
 ---
 
 ## 2. Published Topics (Outbound Discovery & Telemetry)
