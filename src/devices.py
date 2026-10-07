@@ -213,8 +213,8 @@ class Devices:
 
         elif key == KeyboardKey.KEY_F8:
             df.hdmi_off_timeout = self.autosleep
-            df.set_motion(77.7)
             df.motion_enabled = True
+            df.set_motion(77.7)
             #df.display_set_on()
             self.show3("wakeup")
 
