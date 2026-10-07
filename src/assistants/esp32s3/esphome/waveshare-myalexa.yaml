@@ -135,6 +135,7 @@ udp:
             if (is_terminal) {
               // Re-enable wake word detection
               id(mww).start();
+              id(mww_enabled) = true;
               
               // Call set_timeout on App.scheduler
               App.scheduler.set_timeout(id(status_ring), "turn_off_ring", 2000, []() {
@@ -285,15 +286,8 @@ micro_wake_word:
           - light.turn_on: {id: status_ring, red: 0.0, green: 1.0, blue: 1.0, brightness: 80%, effect: "Scan" }
         else:
           - lambda: 'id(udp_streaming_active) = false;'
-          - light.turn_on: {id: status_ring, red: 1.0, green: 0.0, blue: 0.0, brightness: 40%, effect: "Pulse Slow" }
+          - light.turn_on: {id: status_ring, red: 1.0, green: 0.0, blue: 0.0, brightness: 40%, effect: "Pulse Medium" }
             
-    #- switch.turn_on: amp_enable
-    #- media_player.speaker.play_on_device_media_file:
-    #    media_file: wake_word_triggered_sound
-    #    announcement: false
-    #- light.turn_on: { id: status_ring, red: 0.0, green: 1.0, blue: 1.0, brightness: 60%, flash_length: 2s }
-    #- light.turn_on: { id: status_ring, red: 0.0, green: 0.0, blue: 0.8, brightness: 80% }
-
 switch:
   - platform: gpio
     id: amp_enable
@@ -319,7 +313,7 @@ light:
     pin: ${led_pin}
     num_leds: ${led_num}
     chipset: WS2812
-    rgb_order: RGB
+    channel_colors: RGB
     default_transition_length: 150ms
     effects:
       # update_interval must be LONGER than transition_length: it is how often
@@ -445,6 +439,12 @@ globals:
     restore_value: no
     initial_value: 'false'
 
+  # Flags to track whether mww is active
+  - id: mww_enabled
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
   # Transient pass-through for the current ring colour (set by led_set_effect
   # from its params right before use), so no need to persist across reboots.
   - id: led_ring_color_r
@@ -532,19 +532,19 @@ number:
     entity_category: config
     optimistic: true
     restore_value: true
-    min_value: 0.4
+    min_value: 0.1
     max_value: 1.0
     step: 0.05
     initial_value: 0.8
     mode: slider
-#    on_value:
-#      - if:
-#          condition:
-#            light.is_on: status_ring
-#          then:
-#            - light.turn_on:
-#                id: status_ring
-#                brightness: !lambda 'return x;'
+    on_value:
+      - if:
+          condition:
+            light.is_on: status_ring
+          then:
+            - light.turn_on:
+                id: status_ring
+                brightness: !lambda 'return x;'
 
 sensor:
   - platform: template
@@ -555,12 +555,12 @@ sensor:
       #include <fcntl.h>
 
       static bool first_call = true;
-      
+
       if (first_call) {
         first_call = false;
         return 1.0f;
       }
-      
+
       float current_state;
       struct sockaddr_in addr{};
       addr.sin_family = AF_INET;
@@ -584,38 +584,42 @@ sensor:
       }
 
       return current_state;
-      
+
 binary_sensor:    
   - platform: gpio
-    name: "Key1"
+    name: "Key MyAlexa On-Off"
     pin:
       tca9555: ioexp
       number: ${key1_exio}
       inverted: true
     on_press:
-      - script.execute: {id: led_set_effect, effect: "Pulse Fast", r: 0.0, g: 1.0, b: 1.0}
+        - button.press: myalexa_on_off
 
-  - platform: gpio
-    name: "Key2"
-    pin:
-      tca9555: ioexp
-      number: ${key2_exio}
-      inverted: true
+button:
+  - platform: template
+    id: myalexa_on_off
+    name: "MyAlexa On-Off"
     on_press:
-      - script.execute: {id: led_set_effect, effect: "solid", r: 0.0, g: 1.0, b: 0.0}
-
-  - platform: gpio
-    name: "Key3"
-    pin:
-      tca9555: ioexp
-      number: ${key3_exio}
-      inverted: true
-    on_press:
-      - script.execute: {id: led_set_effect, effect: "off", r: 0.0, g: 0.0, b: 0.0}
-
+      then:
+        - if:
+            condition:
+              - lambda: 'return id(mww_enabled);'
+            then:
+              - lambda: id(mww_enabled) = false;
+              - micro_wake_word.stop: 
+              - number.set:
+                  id: led_ring_brightness
+                  value: 0.2
+              - script.execute: {id: led_set_effect, effect: "solid", r: 1.0, g: 0.0, b: 0.0}
+            else:
+              - lambda: id(mww_enabled) = true;
+              - micro_wake_word.start: 
+              - script.execute: {id: led_set_effect, effect: "off", r: 0.0, g: 0.0, b: 0.0}
+        
 media_player:
   - platform: speaker
     id: external_media_player
+    name: "External Media Player"
     volume_initial: 0.8
     volume_increment: 0.01
     volume_min: ${volume_min}
