@@ -404,6 +404,7 @@ class DigitalFrame:
         else:
             key = "KEY_F8" if value == "OFF" else "KEY_F7"
         self.devices.send_keys(key)
+        self.publish_state()
 
     def get_debug_msg(self):
         msg = f"screen={self.width}x{self.height}, ratio={self.ratio}, fps={clock.fps};{clock.rft:.3f}, folder={self.items.folder}, \
