@@ -457,7 +457,10 @@ class BoxPutRemote():
                 if self.boxput:
                     logger.debug("BoxPut event read loop started")
                     self.status = "running"
-
+                    try:
+                        self.boxput.grab()
+                    except IOError as e:
+                        logger.error(f"Failed to grab input device exclusively: {e}")
                     # Read loop using non-blocking select() to respect self.running
                     while self.running and self.boxput:
                         r, _, _ = select.select([self.boxput.fd], [], [], 0.5)
@@ -477,6 +480,7 @@ class BoxPutRemote():
                 logger.debug(f"BoxPut device error or disconnected: {e0}")
                 if self.boxput:
                     try:
+                        self.boxput.ungrab()
                         self.boxput.close()
                     except Exception:
                         pass
@@ -596,6 +600,7 @@ class BoxPutRemote():
             self.status = "stopped"
             logger.info("Stopping BoxPut Remote...")
             if self.boxput:
+                self.boxput.ungrab()
                 self.boxput.close()  # Unblocks select/read immediately
             if self.boxput_thread.is_alive():
                 self.boxput_thread.join(timeout=1.0)
