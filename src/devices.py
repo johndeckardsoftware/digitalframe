@@ -497,7 +497,9 @@ class BoxPutRemote():
         if key_event.keystate == key_event.key_down:
             logger.debug(f"key_down {evdev.ecodes.KEY[key_event.scancode]}")
             if key_event.scancode == evdev.ecodes.KEY_COMPOSE:
-                if self.mode != ControlMode.REMOTE:
+                if self.mode == ControlMode.REMOTE:
+                    self.device.keyboard(self.device.key_kb_menu)
+                else:
                     df.show_remote_help = not df.show_remote_help
                     set_window_focused()
 
