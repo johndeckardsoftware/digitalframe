@@ -82,36 +82,34 @@ class MQTT:
             self.logger.error(f"Unexpected error while connecting to MQTT broker:: {error}")
             self.connected = False
 
-    def on_disconnect(
-        self,
-        client: mqtt.Client,
-        userdata: object,
-        reason_code: mqtt.ReasonCodes | int | None,
-        properties: Optional[mqtt.Properties] = None,
-    ):
-        if isinstance(reason_code, mqtt.ReasonCodes):
-            reason_code_str = f"{reason_code} (value: {reason_code.value})"
+    def on_disconnect(self, client, userdata, flags, rc, properties=None):
+        # Handle reason code whether it's an int or ReasonCodes object
+        if hasattr(rc, "value"):
+            rc_val = rc.value
         else:
-            reason_code_str = str(reason_code)
-        self.logger.warning(f"Disconnected from MQTT broker. Return code: {reason_code_str}")
+            rc_val = rc
+
+        self.logger.warning(f"Disconnected from MQTT broker. Return code: {rc_val}")
         self.connected = False
 
-    def on_connect(
-        self,
-        client: mqtt.Client,
-        userdata: object,
-        flags: Dict[str, Any],
-        reason_code: mqtt.ReasonCodes | int,
-        properties: Optional[mqtt.Properties] = None,
-    ):
-        if reason_code != 0:
-            if isinstance(reason_code, mqtt.ReasonCodes):
+    def on_connect(self, client, userdata, flags, reason_code, properties=None):
+        # Handle reason_code safely whether it's an int, ReasonCodes object, or other type
+        rc_val = reason_code.value if hasattr(reason_code, "value") else reason_code
+
+        try:
+            is_success = int(rc_val) == 0
+        except (ValueError, TypeError):
+            is_success = False
+
+        if not is_success:
+            if hasattr(reason_code, "value"):
                 reason_code_str = f"{reason_code} (value: {reason_code.value})"
             else:
                 reason_code_str = str(reason_code)
             self.logger.warning(f"Can't connect with MQTT broker. Reason = {reason_code_str}")
             self.connected = False
             return
+
         self.logger.info("Connected with MQTT broker")
         self.connected = True
 
