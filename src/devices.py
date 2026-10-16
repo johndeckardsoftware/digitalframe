@@ -539,6 +539,8 @@ class BoxPutRemote():
                     self.show(df.items.subfolder)
                     if df.item: df.item.skip()
                     self.dir_list_index = (self.dir_list_index + 1) % len(self.dir_list)
+                else:
+                    self.device.keyboard(KeyboardKey.KEY_UP)
 
             elif key_event.scancode == evdev.ecodes.KEY_DOWN:
                 if self.mode != ControlMode.REMOTE:
@@ -546,18 +548,24 @@ class BoxPutRemote():
                     self.show(df.items.subfolder)
                     if df.item: df.item.skip()
                     self.dir_list_index = (self.dir_list_index - 1) % len(self.dir_list)
+                else:
+                    self.device.keyboard(KeyboardKey.KEY_DOWN)
 
             elif key_event.scancode == evdev.ecodes.KEY_LEFT:
                 if self.mode != ControlMode.REMOTE:
                     self.show("previous")
                     df.items.set_prev()
                     if df.item: df.item.skip()
+                else:
+                    self.device.keyboard(KeyboardKey.KEY_LEFT)
 
             elif key_event.scancode == evdev.ecodes.KEY_RIGHT:
                 if self.mode != ControlMode.REMOTE:
                     self.show("next")
                     df.items.set_next()
                     if df.item: df.item.skip()
+                else:
+                    self.device.keyboard(KeyboardKey.KEY_RIGHT)
 
             elif key_event.scancode == evdev.ecodes.KEY_BACKSPACE:
                 self.device.keyboard(KeyboardKey.KEY_BACKSPACE)
